@@ -8,11 +8,13 @@ import {
   type ArticleCountDTO,
   type BatchDeleteRequest,
   type BatchDeleteResultDTO,
+  type TagDTO,
   type ApiResponseVoid,
   type ApiResponseArticleDTO,
   type ApiResponseListArticleDTO,
   type ApiResponseArticleCountDTO,
   type ApiResponseBatchDeleteResultDTO,
+  type ApiResponseListTagDTO,
   type PaginationParams,
   type ArticleQueryParams,
 } from '@/types/article'
@@ -67,7 +69,7 @@ class ArticleApiService {
         }
       : undefined
     const result = await http.get<ArticleDTO[]>('/articles/published', queryParams)
-    console.log('API: getPublishedArticles result:', result)
+    
     return result
   }
 
@@ -104,6 +106,13 @@ class ArticleApiService {
    */
   async getArticleCount(): Promise<ApiResponseArticleCountDTO> {
     return http.get<ArticleCountDTO>(`/articles/count`)
+  }
+
+  /**
+   * 获取所有标签
+   */
+  async getTags(): Promise<ApiResponseListTagDTO> {
+    return http.get<TagDTO[]>('/articles/tags')
   }
 
   /**
@@ -164,7 +173,7 @@ class ArticleApiService {
       category: article.statusText || '未分类',
       img: article.img, // 传递图片字段
       readTime,
-      tags: [article.statusText],
+      tags: [],
     }
   }
 

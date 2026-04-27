@@ -15,4 +15,20 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
+  server: {
+    proxy: {
+      '/api/files': {
+        target: 'http://localhost:8083',
+        changeOrigin: true,
+      },
+      '/img': {
+        target: 'http://localhost:8083',
+        changeOrigin: true,
+      },
+      '/api': {
+        target: 'http://localhost:8082',
+        changeOrigin: true,
+      },
+    }
+  },
 })

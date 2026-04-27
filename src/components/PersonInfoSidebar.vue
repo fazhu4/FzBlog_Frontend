@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { onMounted, ref } from 'vue'
+import { settingApi } from '@/services/settingApi'
+
 // 个人信息侧边栏组件
 interface SocialLink {
   platform: string
@@ -6,26 +9,40 @@ interface SocialLink {
   url: string
 }
 
-interface CategoryStat {
-  name: string
-  count: number
-}
-
 // 用户信息
 const userInfo = {
   name: '法助',
-  avatar: 'https://avatars.githubusercontent.com/u/26414?s=200&v=4',
   bio: '热爱技术，喜欢分享的前端开发者。专注于Vue、React和TypeScript。',
   location: '中国',
   website: 'https://github.com/fazhu',
 }
 
+// 默认头像（API 失败时的 fallback）
+const DEFAULT_AVATAR = 'https://avatars.githubusercontent.com/u/26414?s=200&v=4'
+
+const avatarUrl = ref(DEFAULT_AVATAR)
+
+const loadAvatar = async () => {
+  try {
+    const response = await settingApi.getSettings()
+    if (response.success && response.data?.avatar) {
+      avatarUrl.value = settingApi.buildImageUrl(response.data.avatar)
+    }
+  } catch (err) {
+    console.error('获取头像设置失败，使用默认头像:', err)
+  }
+}
+
+onMounted(() => {
+  loadAvatar()
+})
+
 // 社交媒体链接
 const socialLinks: SocialLink[] = [
-  { platform: 'GitHub', icon: '🐙', url: 'https://github.com/fazhu' },
-  { platform: 'Twitter', icon: '🐦', url: 'https://twitter.com/fazhu' },
-  { platform: '掘金', icon: '💎', url: 'https://juejin.cn/user/fazhu' },
-  { platform: '知乎', icon: '📚', url: 'https://www.zhihu.com/people/fazhu' },
+  { platform: 'GitHub', icon: '🐙', url: 'https://github.com/fazhu4' },
+  { platform: 'bilibili', icon: '📺', url: 'https://space.bilibili.com/176326681?spm_id_from=333.1007.0.0' },
+  { platform: '邮箱', icon: '📨', url: 'https://juejin.cn/user/fazhu' },
+  { platform: 'QQ', icon: '🐧', url: 'https://qm.qq.com/cgi-bin/qm/qr?k=a-XTxdLrnevkqoGTgPUQ43v9ZNShRYNK' },
 ]
 
 // 标签云
@@ -49,7 +66,7 @@ const popularTags = [
     <div class="user-card">
       <!-- 头像 -->
       <div class="avatar-container">
-        <img :src="userInfo.avatar" :alt="userInfo.name" class="avatar" />
+        <img :src="avatarUrl" :alt="userInfo.name" class="avatar" />
       </div>
 
       <!-- 基本信息 -->

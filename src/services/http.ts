@@ -79,7 +79,6 @@ class HttpClient {
 
     // 构建完整URL
     const url = buildUrl(endpoint, params)
-    console.log('请求的地址是：' + url)
     try {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 10000) // 10秒超时

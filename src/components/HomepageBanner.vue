@@ -1,12 +1,35 @@
 <script setup lang="ts">
-// 大背景图区域组件
-// 显示网站的主视觉区域，包含标题、描述和行动按钮
+import { onMounted, ref } from 'vue'
+import { settingApi } from '@/services/settingApi'
+
+// 默认首页大图（API 失败时的 fallback）
+const DEFAULT_BANNER = 'http://localhost:8083/api/files/view/b68ef245-8fe7-4a0f-9b05-7e8d4a7329da.png'
+
+const bannerUrl = ref(DEFAULT_BANNER)
+
+const loadBanner = async () => {
+  try {
+    const response = await settingApi.getSettings()
+    console.log("api图片请求资源："+response.data?.banner)
+    if (response.success && response.data?.banner) {
+      bannerUrl.value = settingApi.buildImageUrl(response.data.banner)
+    }
+  } catch (err) {
+    console.error('获取首页大图失败，使用默认图片:', err)
+  }
+}
+
+onMounted(() => {
+  loadBanner()
+})
 </script>
 
 <template>
   <!-- 大背景图区） -->
-  <!-- 注意：要更换背景图片，请修改.banner类的background-image属性 -->
-  <section class="banner">
+  <section
+    class="banner"
+    :style="{ backgroundImage: `url('${bannerUrl}')` }"
+  >
     <div class="banner-overlay"></div>
     <div class="banner-content">
       <!-- 主标题 -->
@@ -16,8 +39,7 @@
         一个分享技术、思考和创意的地<br />
         探索前端开发、设计思维和数字生活的无限可能
       </p>
-      <!-- 行动按钮 -->
-      <button class="banner-button">开始阅读</button>
+
     </div>
 
     <!-- 向下滚动指示器 -->
@@ -38,13 +60,9 @@
 </template>
 
 <style scoped>
-/*
- * 重要：要更换背景图片，请修改下面的background-image URL
- * 将url('/path/to/your/image.jpg')替换为您的图片路径
- */
 .banner {
   position: relative;
-  height: 100vh; /* 占满整个视口高度 */
+  height: 95vh;
   min-height: 600px;
   display: flex;
   align-items: center;
@@ -52,17 +70,9 @@
   text-align: center;
   color: white;
   overflow: hidden;
-
-  /* 背景图片设置 */
-  background-image: url('https://images.unsplash.com/photo-1515879218367-8466d910aaa4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-
-  /* 如果要使用本地图片：
-   * 1. 将图片放入public或assets目录
-   * 2. 修改background-image为：url('/images/your-image.jpg') 或 url('@/assets/your-image.jpg')
-   */
 }
 
 /* 背景覆盖层，增强文字可读性 */
@@ -96,23 +106,6 @@
   opacity: 0.9;
 }
 
-.banner-button {
-  padding: 0.75rem 2rem;
-  font-size: 1rem;
-  font-weight: 600;
-  background-color: #4f46e5;
-  color: white;
-  border: none;
-  border-radius: 0.5rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.banner-button:hover {
-  background-color: #4338ca;
-  transform: translateY(-2px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-}
 
 /* 向下滚动指示器 */
 .scroll-indicator {

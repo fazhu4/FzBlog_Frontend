@@ -14,13 +14,19 @@ export const ArticleStatusText: Record<ArticleStatus, string> = {
   [ArticleStatus.DELETED]: '已删除',
 }
 
+// 标签DTO
+export interface TagDTO {
+  id: number
+  name: string
+}
+
 // 创建文章请求
 export interface CreateArticleRequest {
   title: string
   content?: string
   author: string
   status?: ArticleStatus
-  tags?: string[] // 文章标签
+  tags?: number[] // 文章标签ID列表
 }
 
 // 更新文章请求
@@ -29,7 +35,7 @@ export interface UpdateArticleRequest {
   content?: string
   author?: string
   status?: ArticleStatus
-  tags?: string[] // 文章标签
+  tags?: number[] // 文章标签ID列表
 }
 
 // 文章DTO
@@ -43,7 +49,7 @@ export interface ArticleDTO {
   createTime: string // ISO 8601格式
   updateTime: string // ISO 8601格式
   img?: string // 文章封面图片
-  tags?: string[] // 文章标签
+  tags?: number[] // 文章标签ID列表
 }
 
 // 文章数量统计DTO
@@ -74,13 +80,20 @@ export interface ApiResponse<T = void> {
   data?: T // 响应数据
 }
 
+// 设置DTO
+export interface SettingDTO {
+  banner: string // 首页大图文件名
+  avatar: string // 头像文件名
+}
+
 // 特定API响应类型
 export type ApiResponseVoid = ApiResponse<void>
 export type ApiResponseArticleDTO = ApiResponse<ArticleDTO>
 export type ApiResponseListArticleDTO = ApiResponse<ArticleDTO[]>
+export type ApiResponseListTagDTO = ApiResponse<TagDTO[]>
 export type ApiResponseArticleCountDTO = ApiResponse<ArticleCountDTO>
 export type ApiResponseBatchDeleteResultDTO = ApiResponse<BatchDeleteResultDTO>
-
+export type ApiResponseSettingDTO = ApiResponse<SettingDTO>
 // 分页查询参数
 export interface PaginationParams {
   pageNum?: number // 页码（从1开始）

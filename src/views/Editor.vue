@@ -62,32 +62,18 @@
                   <option :value="ArticleStatus.DRAFT">草稿</option>
                   <option :value="ArticleStatus.PUBLISHED">已发布</option>
                 </select>
-                <div class="tags-input-container">
-                  <div class="selected-tags">
-                    <span v-for="tag in currentArticle.tags" :key="tag" class="tag">
-                      {{ tag }}
-                      <button type="button" class="tag-remove" @click="removeTag(tag)">×</button>
+                <div class="tags-selector">
+                  <div v-if="loadingTags" class="tag-loading">加载标签中...</div>
+                  <div v-else class="tags-grid">
+                    <span
+                      v-for="tag in availableTags"
+                      :key="tag.id"
+                      class="tag-chip"
+                      :class="{ selected: selectedTagIds.includes(tag.id) }"
+                      @click="toggleTag(tag.id)"
+                    >
+                      {{ tag.name }}
                     </span>
-                  </div>
-                  <div class="tag-input-wrapper">
-                    <input
-                      type="text"
-                      class="tag-input"
-                      placeholder="添加标签..."
-                      v-model="tagInput"
-                      @keydown.enter.prevent="addTag"
-                      @blur="handleTagBlur"
-                    />
-                    <div v-if="tagInput && filteredTags.length > 0" class="tag-suggestions">
-                      <div
-                        v-for="tag in filteredTags"
-                        :key="tag"
-                        class="tag-suggestion"
-                        @mousedown.prevent="selectTag(tag)"
-                      >
-                        {{ tag }}
-                      </div>
-                    </div>
                   </div>
                 </div>
                 <div class="editor-actions">
@@ -123,7 +109,8 @@ import { ref, shallowRef, computed, onMounted, onUnmounted, nextTick, watch } fr
 import Vditor from 'vditor'
 import 'vditor/dist/index.css'
 import { articleApi } from '@/services/articleApi'
-import type { ArticleDTO, CreateArticleRequest, UpdateArticleRequest } from '@/types/article'
+import { http } from '@/services/http'
+import type { ArticleDTO, CreateArticleRequest, UpdateArticleRequest, TagDTO } from '@/types/article'
 import { ArticleStatus, ArticleStatusText } from '@/types/article'
 
 // 文章列表相关
@@ -142,24 +129,50 @@ const currentArticle = ref<ArticleDTO | null>(null)
 const originalArticle = ref<ArticleDTO | null>(null)
 
 // 标签相关
-const tagInput = ref<string>('')
-const availableTags = ref<string[]>([
-  '前端开发', '后端开发', 'JavaScript', 'TypeScript', 'Vue', 'React',
-  'CSS', 'HTML', 'Node.js', '数据库', '算法', '数据结构',
-  '性能优化', '网络安全', '移动开发', '人工智能', '机器学习'
-])
+const availableTags = ref<TagDTO[]>([])
+const selectedTagIds = ref<number[]>([])
+const originalSelectedTagIds = ref<number[]>([])
+const loadingTags = ref(false)
+
+// 获取标签列表
+const loadTags = async () => {
+  loadingTags.value = true
+  try {
+    const res = await http.get<TagDTO[]>('/articles/tags')
+    if (res.success && res.data) {
+      availableTags.value = res.data
+    }
+  } catch (error) {
+    console.error('加载标签列表失败:', error)
+  } finally {
+    loadingTags.value = false
+  }
+}
+
+// 切换标签选中状态
+const toggleTag = (tagId: number) => {
+  const index = selectedTagIds.value.indexOf(tagId)
+  if (index === -1) {
+    selectedTagIds.value.push(tagId)
+  } else {
+    selectedTagIds.value.splice(index, 1)
+  }
+}
 
 // 状态
 const saving = ref(false)
 const lastSaved = ref<string>('')
 const hasChanges = computed(() => {
   if (!currentArticle.value || !originalArticle.value) return false
+  const tagsChanged =
+    JSON.stringify(currentArticle.value.tags?.sort()) !==
+    JSON.stringify(originalArticle.value.tags?.sort())
   return (
     currentArticle.value.title !== originalArticle.value.title ||
     currentArticle.value.content !== originalArticle.value.content ||
     currentArticle.value.author !== originalArticle.value.author ||
     currentArticle.value.status !== originalArticle.value.status ||
-    JSON.stringify(currentArticle.value.tags || []) !== JSON.stringify(originalArticle.value.tags || [])
+    tagsChanged
   )
 })
 
@@ -281,24 +294,66 @@ const initVditor = () => {
         delay: 100,
         hljs: {
           lineNumber: true
+        },
+        markdown: {
+          // 关闭 HTML 净化，允许 http:// 外链图片
+          sanitize: false,
+          autoSpace: true,
+          fixTermTypo: true,
+          toc: true,
+          footnotes: true,
+          gfmAutoLink: true,
+          listStyle: true,
+          mark: true,
+        },
+        transform: (html: string) => {
+          // 为文件服务的图片添加懒加载
+          const parser = new DOMParser()
+          const doc = parser.parseFromString(html, 'text/html')
+          doc.querySelectorAll('img[src^="/img/"]').forEach(img => {
+            img.setAttribute('loading', 'lazy')
+          })
+          return doc.body.innerHTML
         }
       },
       upload: {
         accept: 'image/*,.mp3,.wav,.mp4',
         handler: (files: File[]) => {
-          // 本地base64上传方案，避免后端依赖
-          return new Promise<string>((resolve) => {
-            const file = files[0]
-            const reader = new FileReader()
-            reader.onload = (e) => {
-              const result = e.target?.result as string
-              if (result && vditorInstance.value) {
-                vditorInstance.value.insertValue(`![${file.name}](${result})`)
-              }
-              resolve('')
-            }
-            reader.readAsDataURL(file)
+          const file = files[0]
+          if (!file) return Promise.resolve('')
+
+          const formData = new FormData()
+          formData.append('file', file)
+
+          // 通过 Vite 代理上传到文件服务，避免跨域问题
+          return fetch('/api/files/upload', {
+            method: 'POST',
+            body: formData,
           })
+            .then(res => res.json())
+            .then(data => {
+              // 响应: { success: true, data: { url: "/img/contents/xxx.png" } }
+              const fileUrl = data?.data?.url
+              if (fileUrl && vditorInstance.value) {
+                vditorInstance.value.insertValue(`![](${fileUrl})`)
+                return ''
+              }
+              throw new Error('上传响应中未找到文件路径')
+            })
+            .catch((err) => {
+              console.error('图片上传失败，回退到 base64:', err)
+              const reader = new FileReader()
+              return new Promise<string>((resolve) => {
+                reader.onload = (e) => {
+                  const dataUrl = e.target?.result as string
+                  if (dataUrl && vditorInstance.value) {
+                    vditorInstance.value.insertValue(`![${file.name}](${dataUrl})`)
+                  }
+                  resolve('')
+                }
+                reader.readAsDataURL(file)
+              })
+            })
         }
       },
       input: (value: string) => {
@@ -343,7 +398,7 @@ const updateVditorContent = (content: string) => {
 }
 
 // 选择文章
-const selectArticle = (article: ArticleDTO) => {
+const selectArticle = async (article: ArticleDTO) => {
   if (hasChanges.value && !confirm('您有未保存的更改，是否放弃？')) {
     return
   }
@@ -355,6 +410,8 @@ const selectArticle = (article: ArticleDTO) => {
   }
   currentArticle.value = articleCopy
   originalArticle.value = JSON.parse(JSON.stringify(articleCopy))
+  selectedTagIds.value = [...(articleCopy.tags || [])]
+  originalSelectedTagIds.value = [...selectedTagIds.value]
 
   // 更新编辑器内容
   updateVditorContent(articleCopy.content)
@@ -379,7 +436,7 @@ const saveArticle = async (publish: boolean) => {
         content: articleToSave.content,
         author: articleToSave.author,
         status: articleToSave.status,
-        tags: articleToSave.tags || []
+        tags: selectedTagIds.value
       }
       response = await articleApi.createArticle(request)
       if (response.success && response.data) {
@@ -387,6 +444,8 @@ const saveArticle = async (publish: boolean) => {
         articles.value.unshift(response.data)
         currentArticle.value = response.data
         originalArticle.value = JSON.parse(JSON.stringify(response.data))
+        selectedTagIds.value = [...(response.data.tags || [])]
+        originalSelectedTagIds.value = [...selectedTagIds.value]
       }
     } else {
       const request: UpdateArticleRequest = {
@@ -394,7 +453,7 @@ const saveArticle = async (publish: boolean) => {
         content: articleToSave.content,
         author: articleToSave.author,
         status: articleToSave.status,
-        tags: articleToSave.tags || []
+        tags: selectedTagIds.value
       }
       response = await articleApi.updateArticle(articleToSave.id, request)
       if (response.success && response.data) {
@@ -404,6 +463,8 @@ const saveArticle = async (publish: boolean) => {
         }
         currentArticle.value = response.data
         originalArticle.value = JSON.parse(JSON.stringify(response.data))
+        selectedTagIds.value = [...(response.data.tags || [])]
+        originalSelectedTagIds.value = [...selectedTagIds.value]
       }
     }
 
@@ -484,7 +545,9 @@ const unpublishArticle = async (article: ArticleDTO) => {
 const discardChanges = () => {
   if (originalArticle.value) {
     currentArticle.value = JSON.parse(JSON.stringify(originalArticle.value))
-    updateVditorContent(currentArticle.value.content || '')
+    selectedTagIds.value = [...(currentArticle.value?.tags || [])]
+    originalSelectedTagIds.value = [...selectedTagIds.value]
+    updateVditorContent(currentArticle.value?.content || '')
   }
 }
 
@@ -506,58 +569,6 @@ const getStatusClass = (status: ArticleStatus) => {
 }
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString('zh-CN')
-}
-
-// 标签相关函数
-const filteredTags = computed(() => {
-  if (!tagInput.value) return []
-  const input = tagInput.value.toLowerCase()
-  return availableTags.value.filter(tag =>
-    tag.toLowerCase().includes(input) &&
-    !currentArticle.value?.tags?.includes(tag)
-  )
-})
-
-const addTag = () => {
-  if (!tagInput.value.trim() || !currentArticle.value) return
-
-  const tag = tagInput.value.trim()
-  if (!currentArticle.value.tags) {
-    currentArticle.value.tags = []
-  }
-
-  if (!currentArticle.value.tags.includes(tag)) {
-    currentArticle.value.tags.push(tag)
-  }
-
-  tagInput.value = ''
-}
-
-const handleTagBlur = () => {
-  // 仅在输入有内容时添加标签，避免误触
-  if (tagInput.value.trim()) {
-    addTag()
-  }
-}
-
-const selectTag = (tag: string) => {
-  if (!currentArticle.value) return
-
-  if (!currentArticle.value.tags) {
-    currentArticle.value.tags = []
-  }
-
-  if (!currentArticle.value.tags.includes(tag)) {
-    currentArticle.value.tags.push(tag)
-  }
-
-  tagInput.value = ''
-}
-
-const removeTag = (tagToRemove: string) => {
-  if (!currentArticle.value || !currentArticle.value.tags) return
-
-  currentArticle.value.tags = currentArticle.value.tags.filter(tag => tag !== tagToRemove)
 }
 
 // 监听当前文章变化，初始化编辑器
@@ -591,6 +602,7 @@ watch(currentArticle, (newArticle, oldArticle) => {
 // 初始化
 onMounted(() => {
   loadArticles()
+  loadTags()
 })
 
 // 组件卸载时清理编辑器
@@ -851,81 +863,45 @@ h1 {
   background-color: #d32f2f;
 }
 
-.tags-input-container {
+.tags-selector {
   flex: 1;
-  position: relative;
 }
 
-.selected-tags {
+.tags-grid {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  margin-bottom: 0.5rem;
 }
 
-.tag {
+.tag-chip {
   display: inline-flex;
   align-items: center;
+  padding: 0.3rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  background-color: #f0f0f0;
+  color: #666;
+  border: 1px solid #ddd;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.tag-chip:hover {
   background-color: #e3f2fd;
+  border-color: #90caf9;
   color: #1976d2;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.875rem;
 }
 
-.tag-remove {
-  background: none;
-  border: none;
-  color: #1976d2;
-  cursor: pointer;
-  font-size: 1rem;
-  margin-left: 0.25rem;
-  padding: 0;
-  width: 16px;
-  height: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.tag-chip.selected {
+  background-color: #1976d2;
+  color: #fff;
+  border-color: #1976d2;
 }
 
-.tag-remove:hover {
-  color: #f44336;
-}
-
-.tag-input-wrapper {
-  position: relative;
-}
-
-.tag-input {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 0.875rem;
-}
-
-.tag-suggestions {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background: white;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  z-index: 10;
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.tag-suggestion {
-  padding: 0.5rem;
-  cursor: pointer;
-  font-size: 0.875rem;
-}
-
-.tag-suggestion:hover {
-  background-color: #f5f5f5;
+.tag-loading {
+  font-size: 0.8rem;
+  color: #999;
 }
 
 .loading, .empty, .error {

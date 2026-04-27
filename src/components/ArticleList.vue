@@ -4,16 +4,21 @@
 
 import { useRouter } from 'vue-router'
 import { onMounted, ref, watch } from 'vue'
-import { useArticleStore } from '@/stores/article'
+import { articleApi } from '@/services/articleApi'
 import type { ArticleCard } from '@/types/article'
 
 // 获取路由实例
 const router = useRouter()
-const articleStore = useArticleStore()
 
 // 响应式数据
 const articles = ref<ArticleCard[]>([])
-const isLoading = ref(false)
+const initialLoading = ref(false) // 首次加载
+const loadingMore = ref(false)    // 加载更多中
+const pageNum = ref(1)
+const hasMore = ref(true)
+const error = ref<string | null>(null)
+const tagMap = ref<Record<number, string>>({}) // 标签ID -> 标签名称
+const PAGE_SIZE = 7
 
 // 文件服务基础URL
 const FILE_BASE_URL = import.meta.env.VITE_FILE_BASE_URL || 'http://localhost:8083'
@@ -21,39 +26,74 @@ const FILE_BASE_URL = import.meta.env.VITE_FILE_BASE_URL || 'http://localhost:80
 // 构建图片URL
 const buildImageUrl = (imgPath: string) => {
   if (!imgPath) return ''
-  // 如果已经是完整URL，直接返回
   if (imgPath.startsWith('http')) {
     return imgPath
   }
-  // 否则构建完整URL
   return `${FILE_BASE_URL}/api/files/view/${imgPath}`
 }
 
 // 定义组件接收的属性（可选，用于外部传入文章数据）
 const props = defineProps<{
-  useApi?: boolean // 是否使用API获取数据，默认true
-  externalArticles?: ArticleCard[] // 外部传入的文章数据
+  externalArticles?: ArticleCard[]
 }>()
+
+// 获取所有标签
+const fetchTags = async () => {
+  try {
+    const response = await articleApi.getTags()
+    if (response.success && response.data) {
+      const map: Record<number, string> = {}
+      response.data.forEach(tag => { map[tag.id] = tag.name })
+      tagMap.value = map
+    }
+  } catch (err) {
+    console.error('获取标签列表失败:', err)
+  }
+}
+
+// 将文章DTO的tag IDs映射为tag名称并填充到cards上
+const fillArticleTags = (cards: ArticleCard[], tagIdsList: (number[] | undefined)[]) => {
+  tagIdsList.forEach((tagIds, i) => {
+    if (tagIds && tagIds.length > 0 && i < cards.length) {
+      cards[i].tags = tagIds.map(id => tagMap.value[id]).filter((name): name is string => !!name)
+    }
+  })
+}
 
 // 初始化
 const init = async () => {
+  pageNum.value = 1
+  hasMore.value = true
+  error.value = null
+
   if (props.externalArticles && props.externalArticles.length > 0) {
-    // 使用外部传入的文章数据
     articles.value = props.externalArticles
-  } else {
-    // 使用API获取已发布的文章
-    isLoading.value = true
-    try {
-      await articleStore.fetchPublishedArticles(1, 10)
-      articles.value = articleStore.articleCards
-    } catch (error) {
-      console.error('获取文章列表失败:', error)
-      // 可以显示错误提示
-    } finally {
-      isLoading.value = false
-    }
+    return
   }
-  console.log('获取的后端 数据' + articles.value[0]?.img)
+
+  initialLoading.value = true
+  try {
+    // 并行获取文章列表和标签
+    const [articleRes] = await Promise.all([
+      articleApi.getPublishedArticles({ pageNum: 1, pageSize: PAGE_SIZE }),
+      fetchTags(),
+    ])
+    if (articleRes.success && articleRes.data) {
+      const cards = articleApi.convertToArticleCards(articleRes.data)
+      fillArticleTags(cards, articleRes.data.map(d => d.tags))
+      articles.value = cards
+      if (articleRes.data.length < PAGE_SIZE) {
+        hasMore.value = false
+      }
+    } else {
+      throw new Error(articleRes.message || '获取文章列表失败')
+    }
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : '未知错误'
+    console.error('获取文章列表失败:', err)
+  } finally {
+    initialLoading.value = false
+  }
 }
 
 // 跳转到文章详情页
@@ -63,9 +103,27 @@ const goToArticleDetail = (articleId: number) => {
 
 // 加载更多文章
 const loadMoreArticles = async () => {
-  // 这里可以实现分页加载更多文章
-  // 暂时先重新加载第一页
-  await init()
+  if (loadingMore.value || !hasMore.value) return
+  pageNum.value++
+  loadingMore.value = true
+  try {
+    const response = await articleApi.getPublishedArticles({ pageNum: pageNum.value, pageSize: PAGE_SIZE })
+    if (response.success && response.data) {
+      const newCards = articleApi.convertToArticleCards(response.data)
+      fillArticleTags(newCards, response.data.map(d => d.tags))
+      articles.value.push(...newCards)
+      if (response.data.length < PAGE_SIZE) {
+        hasMore.value = false
+      }
+    } else {
+      throw new Error(response.message || '加载更多文章失败')
+    }
+  } catch (err) {
+    console.error('加载更多文章失败:', err)
+    pageNum.value--
+  } finally {
+    loadingMore.value = false
+  }
 }
 
 // 监听外部文章数据变化
@@ -97,15 +155,15 @@ onMounted(() => {
         <p class="section-subtitle">探索我们最新的技术分享和思考</p>
       </div>
 
-      <!-- 加载状态 -->
-      <div v-if="isLoading" class="loading-state">
+      <!-- 首次加载状态 -->
+      <div v-if="initialLoading" class="loading-state">
         <div class="spinner"></div>
         <p>正在加载文章...</p>
       </div>
 
       <!-- 错误状态 -->
-      <div v-else-if="articleStore.error" class="error-state">
-        <p class="error-message">{{ articleStore.error }}</p>
+      <div v-else-if="error" class="error-state">
+        <p class="error-message">{{ error }}</p>
         <button class="retry-button" @click="init">重试</button>
       </div>
 
@@ -117,21 +175,15 @@ onMounted(() => {
           v-for="(article, index) in articles"
           :key="article.id"
           :class="['article-card', index % 2 === 0 ? 'left-image' : 'right-image']"
-          style="cursor: pointer"
+          @click="goToArticleDetail(article.id)"
         >
           <!-- 文章图片（如果有） -->
           <div v-if="article.img" class="article-image">
             <img :src="buildImageUrl(article.img)" :alt="article.title" />
-            <!-- 类别标签放在图片上 -->
-            <div class="article-category">{{ article.category }}</div>
           </div>
 
           <!-- 文章内容 -->
           <div class="article-content">
-            <!-- 如果没有图片，显示类别标签在内容区域 -->
-            <div v-if="!article.img" class="article-category no-image">
-              {{ article.category }}
-            </div>
 
             <!-- 文章标题 -->
             <h3 class="article-title">{{ article.title }}</h3>
@@ -154,15 +206,6 @@ onMounted(() => {
             <div class="article-tags" v-if="article.tags && article.tags.length">
               <span v-for="tag in article.tags" :key="tag" class="article-tag">{{ tag }}</span>
             </div>
-
-            <!-- 阅读更多按钮 -->
-            <button
-              class="article-read-more"
-              @click.stop="goToArticleDetail(article.id)"
-              @click.prevent
-            >
-              阅读全文
-            </button>
           </div>
         </article>
       </div>
@@ -173,8 +216,10 @@ onMounted(() => {
       </div>
 
       <!-- 加载更多按钮 -->
-      <div v-if="articles.length > 0 && !isLoading" class="load-more-container">
-        <button class="load-more-button" @click="loadMoreArticles">加载更多文章</button>
+      <div v-if="articles.length > 0 && hasMore" class="load-more-container">
+        <button class="load-more-button" :disabled="loadingMore" @click="loadMoreArticles">
+          {{ loadingMore ? '加载中...' : '加载更多文章' }}
+        </button>
       </div>
     </div>
   </main>
@@ -227,6 +272,7 @@ onMounted(() => {
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
   display: flex;
+  cursor: pointer;
 }
 
 /* 左图右文布局（偶数索引：0, 2, 4...） */
@@ -242,27 +288,6 @@ onMounted(() => {
 .article-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-}
-
-.article-category {
-  display: inline-block;
-  background-color: #4f46e5;
-  color: white;
-  padding: 0.25rem 0.75rem;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
-  align-self: flex-start;
-  position: absolute;
-  top: 1rem;
-  left: 1rem;
-  z-index: 10;
-}
-
-.article-category.no-image {
-  position: static;
-  margin-bottom: 1rem;
 }
 
 /* 文章图片 */
@@ -348,6 +373,7 @@ onMounted(() => {
   flex-wrap: wrap;
   gap: 0.5rem;
   margin-bottom: 1rem;
+  margin-top: auto;
 }
 
 .article-tag {
@@ -357,24 +383,6 @@ onMounted(() => {
   border-radius: 1rem;
   font-size: 0.75rem;
   font-weight: 500;
-}
-
-.article-read-more {
-  padding: 0.5rem 1rem;
-  background-color: transparent;
-  color: #4f46e5;
-  border: 1px solid #4f46e5;
-  border-radius: 0.375rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  align-self: flex-start;
-  margin-top: auto;
-}
-
-.article-read-more:hover {
-  background-color: #4f46e5;
-  color: white;
 }
 
 /* 加载更多按钮 */
@@ -432,8 +440,11 @@ onMounted(() => {
   }
 }
 
-.load-more-button:hover {
-  background-color: #4338ca;
+.load-more-button:disabled {
+  background-color: #94a3b8;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 /* 响应式设计 */

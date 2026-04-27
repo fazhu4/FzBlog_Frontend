@@ -9,8 +9,6 @@
       <nav class="breadcrumb">
         <span class="breadcrumb-item">首页</span>
         <span class="breadcrumb-separator">/</span>
-        <span class="breadcrumb-item">{{ articleForDisplay?.category }}</span>
-        <span class="breadcrumb-separator">/</span>
         <span class="breadcrumb-item active">{{ articleForDisplay?.title }}</span>
       </nav>
     </div>
@@ -20,9 +18,6 @@
       <div class="container">
         <!-- 文章头部信息 -->
         <header v-if="articleForDisplay" class="article-header">
-          <!-- 类别标签 -->
-          <div class="article-category-badge">{{ articleForDisplay.category }}</div>
-
           <!-- 文章标题 -->
           <h1 class="article-title">{{ articleForDisplay.title }}</h1>
 
@@ -142,8 +137,7 @@ const articleForDisplay = computed(() => {
   const readTimeMinutes = Math.ceil(wordCount / 200)
   const readTime = `${readTimeMinutes}分钟`
 
-  // 提取可能的标签（这里可以根据业务逻辑调整）
-  const tags = article.value.tags?.length ? article.value.tags : [article.value.statusText]
+  const tags = article.value.tags?.length ? article.value.tags : []
 
   // 如果有分类信息，可以从其他字段获取
   const category = article.value.statusText || '未分类'
@@ -350,18 +344,6 @@ onMounted(() => {
 .article-header {
   margin-bottom: 3rem;
   position: relative;
-}
-
-.article-category-badge {
-  display: inline-block;
-  background-color: #4f46e5;
-  color: white;
-  padding: 0.5rem 1rem;
-  border-radius: 2rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
-  box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);
 }
 
 .article-title {

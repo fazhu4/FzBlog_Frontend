@@ -51,23 +51,31 @@ export const useArticleStore = defineStore('article', () => {
   }
 
   // 获取已发布的文章（分页）
-  async function fetchPublishedArticles(pageNum = 1, pageSize = 10) {
+  async function fetchPublishedArticles(pageNum = 1, pageSize = 10, append = false) {
     isLoading.value = true
     error.value = null
-    console.log(`Store: 开始获取已发布文章，pageNum=${pageNum}, pageSize=${pageSize}`)
+    console.log(`Store: 开始获取已发布文章，pageNum=${pageNum}, pageSize=${pageSize}, append=${append}`)
     try {
       const response = await articleApi.getPublishedArticles({ pageNum, pageSize })
       console.log('Store: API响应成功:', response)
       if (response.success && response.data) {
-        articles.value = response.data
-        articleCards.value = articleApi.convertToArticleCards(response.data)
-        console.log('Store: 获取文章成功，数量:', articleCards.value.length)
+        if (append) {
+          // 追加模式：将新数据追加到已有列表末尾
+          articleCards.value.push(...articleApi.convertToArticleCards(response.data))
+        } else {
+          // 替换模式：完全替换列表
+          articles.value = response.data
+          articleCards.value = articleApi.convertToArticleCards(response.data)
+        }
+        console.log('Store: 获取文章成功，当前总数:', articleCards.value.length)
+        return response.data
       } else {
         throw new Error(response.message || '获取已发布文章失败')
       }
     } catch (err) {
       error.value = err instanceof Error ? err.message : '未知错误'
       console.error('Store: 获取已发布文章失败:', err)
+      return null
     } finally {
       isLoading.value = false
     }
