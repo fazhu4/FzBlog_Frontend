@@ -5,10 +5,10 @@
     <section class="content-section">
       <div class="content-inner">
         <aside class="sidebar-wrapper">
-          <PersonInfoSidebar />
+          <PersonInfoSidebar @update:selected-tags="onSelectedTagsChange" />
         </aside>
         <div class="articles-wrapper">
-          <ArticleList />
+          <ArticleList :selected-tags="selectedTags" />
         </div>
       </div>
     </section>
@@ -16,9 +16,16 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import HomepageBanner from '@/components/HomepageBanner.vue'
 import PersonInfoSidebar from '@/components/PersonInfoSidebar.vue'
 import ArticleList from '@/components/ArticleList.vue'
+
+const selectedTags = ref<number[]>([])
+
+const onSelectedTagsChange = (tagIds: number[]) => {
+  selectedTags.value = tagIds
+}
 </script>
 
 <style scoped>

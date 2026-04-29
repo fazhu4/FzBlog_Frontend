@@ -8,13 +8,13 @@ console.log('初始化API:  ' + import.meta.env.VITE_API_BASE_URL)
 // 请求配置接口
 interface RequestConfig extends RequestInit {
   headers?: Record<string, string>
-  params?: Record<string, string | number | boolean | undefined>
+  params?: Record<string, string | number | boolean | (string | number)[] | undefined>
 }
 
 // 构建完整的URL
 function buildUrl(
   endpoint: string,
-  params?: Record<string, string | number | boolean | undefined>,
+  params?: Record<string, string | number | boolean | (string | number)[] | undefined>,
 ): string {
   // 如果endpoint已经是完整的URL，直接使用
   if (endpoint.startsWith('http')) {
@@ -23,7 +23,11 @@ function buildUrl(
       const queryParams = new URLSearchParams()
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
-          queryParams.append(key, String(value))
+          if (Array.isArray(value)) {
+            value.forEach(v => queryParams.append(key, String(v)))
+          } else {
+            queryParams.append(key, String(value))
+          }
         }
       })
       const queryString = queryParams.toString()
@@ -43,7 +47,11 @@ function buildUrl(
     const queryParams = new URLSearchParams()
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
-        queryParams.append(key, String(value))
+        if (Array.isArray(value)) {
+          value.forEach(v => queryParams.append(key, String(v)))
+        } else {
+          queryParams.append(key, String(value))
+        }
       }
     })
     const queryString = queryParams.toString()
@@ -111,7 +119,7 @@ class HttpClient {
   // GET请求
   async get<T>(
     endpoint: string,
-    params?: Record<string, string | number | boolean | undefined>,
+    params?: Record<string, string | number | boolean | (string | number)[] | undefined>,
     config?: RequestConfig,
   ): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {

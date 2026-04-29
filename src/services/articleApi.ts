@@ -39,7 +39,7 @@ class ArticleApiService {
    * 获取文章详情
    */
   async getArticleById(id: number): Promise<ApiResponseArticleDTO> {
-    return http.get<ArticleDTO>(`/articles/${id}`)
+    return http.get<ArticleDTO>(`/articles/${id}/detailed`)
   }
 
   /**
@@ -57,20 +57,21 @@ class ArticleApiService {
   }
 
   /**
-   * 获取已发布的文章列表（分页）
+   * 获取已发布的文章列表（分页，可选标签过滤）
    */
-  async getPublishedArticles(params?: PaginationParams): Promise<ApiResponseListArticleDTO> {
-    console.log('API: getPublishedArticles called with params:', params)
-    // 将PaginationParams转换为Record<string, string | number | boolean | undefined>
-    const queryParams = params
-      ? {
-          pageNum: params.pageNum,
-          pageSize: params.pageSize,
-        }
-      : undefined
-    const result = await http.get<ArticleDTO[]>('/articles/published', queryParams)
-    
-    return result
+  async getPublishedArticles(
+    params?: PaginationParams,
+    tagIds?: number[],
+  ): Promise<ApiResponseListArticleDTO> {
+    const queryParams: Record<string, string | number | undefined> = {}
+    if (params) {
+      queryParams.pageNum = params.pageNum
+      queryParams.pageSize = params.pageSize
+    }
+    if (tagIds && tagIds.length > 0) {
+      queryParams.tagIds = tagIds.join(',')
+    }
+    return http.get<ArticleDTO[]>('/articles/published', queryParams)
   }
 
   /**
@@ -112,7 +113,7 @@ class ArticleApiService {
    * 获取所有标签
    */
   async getTags(): Promise<ApiResponseListTagDTO> {
-    return http.get<TagDTO[]>('/articles/tags')
+    return http.get<TagDTO[]>('/tags')
   }
 
   /**

@@ -18,6 +18,7 @@ const pageNum = ref(1)
 const hasMore = ref(true)
 const error = ref<string | null>(null)
 const tagMap = ref<Record<number, string>>({}) // 标签ID -> 标签名称
+const isFirstLoad = ref(true)
 const PAGE_SIZE = 7
 
 // 文件服务基础URL
@@ -35,6 +36,7 @@ const buildImageUrl = (imgPath: string) => {
 // 定义组件接收的属性（可选，用于外部传入文章数据）
 const props = defineProps<{
   externalArticles?: ArticleCard[]
+  selectedTags?: number[]
 }>()
 
 // 获取所有标签
@@ -71,11 +73,14 @@ const init = async () => {
     return
   }
 
-  initialLoading.value = true
+  // 只有首次加载才显示全屏 loading，标签切换时静默刷新
+  if (isFirstLoad.value) {
+    initialLoading.value = true
+  }
   try {
     // 并行获取文章列表和标签
     const [articleRes] = await Promise.all([
-      articleApi.getPublishedArticles({ pageNum: 1, pageSize: PAGE_SIZE }),
+      articleApi.getPublishedArticles({ pageNum: 1, pageSize: PAGE_SIZE }, props.selectedTags),
       fetchTags(),
     ])
     if (articleRes.success && articleRes.data) {
@@ -93,6 +98,7 @@ const init = async () => {
     console.error('获取文章列表失败:', err)
   } finally {
     initialLoading.value = false
+    isFirstLoad.value = false
   }
 }
 
@@ -107,7 +113,7 @@ const loadMoreArticles = async () => {
   pageNum.value++
   loadingMore.value = true
   try {
-    const response = await articleApi.getPublishedArticles({ pageNum: pageNum.value, pageSize: PAGE_SIZE })
+    const response = await articleApi.getPublishedArticles({ pageNum: pageNum.value, pageSize: PAGE_SIZE }, props.selectedTags)
     if (response.success && response.data) {
       const newCards = articleApi.convertToArticleCards(response.data)
       fillArticleTags(newCards, response.data.map(d => d.tags))
@@ -135,6 +141,16 @@ watch(
     }
   },
   { immediate: true },
+)
+
+// 标签变化时静默重新拉取，不显示全屏 loading
+watch(
+  () => props.selectedTags,
+  () => {
+    if (!isFirstLoad.value) {
+      init()
+    }
+  },
 )
 
 // 组件挂载时初始化

@@ -10,7 +10,7 @@ const bannerUrl = ref(DEFAULT_BANNER)
 const loadBanner = async () => {
   try {
     const response = await settingApi.getSettings()
-    console.log("api图片请求资源："+response.data?.banner)
+
     if (response.success && response.data?.banner) {
       bannerUrl.value = settingApi.buildImageUrl(response.data.banner)
     }

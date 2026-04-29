@@ -8,11 +8,24 @@
           <div class="sidebar-header">
             <button class="btn btn-primary" @click="createNewArticle">新建文章</button>
             <div class="filter">
-              <select v-model="filterStatus" @change="loadArticles">
+              <select v-model="filterStatus" @change="applyFilters">
                 <option value="">全部</option>
                 <option :value="ArticleStatus.DRAFT">草稿</option>
                 <option :value="ArticleStatus.PUBLISHED">已发布</option>
               </select>
+            </div>
+          </div>
+          <div class="sidebar-tags">
+            <div v-if="loadingTags" class="tag-loading">加载标签中...</div>
+            <div v-else class="filter-tags-cloud">
+              <span
+                v-for="tag in availableTags"
+                :key="tag.id"
+                :class="['filter-tag', { 'filter-tag-active': selectedFilterTagIds.has(tag.id) }]"
+                @click="toggleFilterTag(tag.id)"
+              >
+                {{ tag.name }}
+              </span>
             </div>
           </div>
           <div class="article-list">
@@ -115,6 +128,7 @@ import { ArticleStatus, ArticleStatusText } from '@/types/article'
 
 // 文章列表相关
 const articles = ref<ArticleDTO[]>([])
+const allArticles = ref<ArticleDTO[]>([]) // 缓存全量数据，筛选时不再请求
 const loadingArticles = ref(false)
 const filterStatus = ref<ArticleStatus | ''>('')
 const loadError = ref<string>('')
@@ -133,12 +147,13 @@ const availableTags = ref<TagDTO[]>([])
 const selectedTagIds = ref<number[]>([])
 const originalSelectedTagIds = ref<number[]>([])
 const loadingTags = ref(false)
+const selectedFilterTagIds = ref<Set<number>>(new Set())
 
 // 获取标签列表
 const loadTags = async () => {
   loadingTags.value = true
   try {
-    const res = await http.get<TagDTO[]>('/articles/tags')
+    const res = await http.get<TagDTO[]>('/tags')
     if (res.success && res.data) {
       availableTags.value = res.data
     }
@@ -149,7 +164,7 @@ const loadTags = async () => {
   }
 }
 
-// 切换标签选中状态
+// 切换标签选中状态（编辑器）
 const toggleTag = (tagId: number) => {
   const index = selectedTagIds.value.indexOf(tagId)
   if (index === -1) {
@@ -157,6 +172,17 @@ const toggleTag = (tagId: number) => {
   } else {
     selectedTagIds.value.splice(index, 1)
   }
+}
+
+// 切换标签筛选状态（列表过滤）
+const toggleFilterTag = (tagId: number) => {
+  if (selectedFilterTagIds.value.has(tagId)) {
+    selectedFilterTagIds.value.delete(tagId)
+  } else {
+    selectedFilterTagIds.value.add(tagId)
+  }
+  selectedFilterTagIds.value = new Set(selectedFilterTagIds.value)
+  applyFilters()
 }
 
 // 状态
@@ -185,18 +211,15 @@ const wordCount = computed(() => {
   return chineseChars + englishWords
 })
 
-// 加载文章列表
-const loadArticles = async () => {
+// 从服务器拉取全量文章列表
+const fetchArticles = async () => {
   loadingArticles.value = true
   loadError.value = ''
   try {
     const response = await articleApi.getAllArticles()
     if (response.success && response.data) {
-      let filtered = response.data
-      if (filterStatus.value !== '') {
-        filtered = filtered.filter(article => article.status === filterStatus.value)
-      }
-      articles.value = filtered
+      allArticles.value = response.data
+      applyFilters()
     } else {
       loadError.value = `加载失败: ${response.message} (代码: ${response.code})`
       console.error('加载文章列表失败:', response)
@@ -209,13 +232,28 @@ const loadArticles = async () => {
   }
 }
 
+// 本地筛选（不请求服务器）
+const applyFilters = () => {
+  let filtered = allArticles.value
+  if (filterStatus.value !== '') {
+    filtered = filtered.filter(article => article.status === filterStatus.value)
+  }
+  if (selectedFilterTagIds.value.size > 0) {
+    const selectedIds = Array.from(selectedFilterTagIds.value)
+    filtered = filtered.filter(
+      article => selectedIds.every(tagId => article.tags?.includes(tagId))
+    )
+  }
+  articles.value = filtered
+}
+
 // 创建新文章
 const createNewArticle = () => {
   const newArticle: ArticleDTO = {
     id: 0,
     title: '新文章',
     content: '',
-    author: '作者',
+    author: '法助',
     status: ArticleStatus.DRAFT,
     statusText: ArticleStatusText[ArticleStatus.DRAFT],
     createTime: new Date().toISOString(),
@@ -470,7 +508,7 @@ const saveArticle = async (publish: boolean) => {
 
     if (response.success) {
       lastSaved.value = new Date().toLocaleTimeString()
-      await loadArticles()
+      await fetchArticles()
     } else {
       alert(`保存失败: ${response.message} (代码: ${response.code})`)
     }
@@ -489,7 +527,8 @@ const deleteArticle = async (article: ArticleDTO) => {
   try {
     const response = await articleApi.deleteArticle(article.id)
     if (response.success) {
-      articles.value = articles.value.filter(a => a.id !== article.id)
+      allArticles.value = allArticles.value.filter(a => a.id !== article.id)
+      applyFilters()
       if (currentArticle.value?.id === article.id) {
         currentArticle.value = null
         originalArticle.value = null
@@ -508,7 +547,7 @@ const publishArticle = async (article: ArticleDTO) => {
   try {
     const response = await articleApi.publishArticle(article.id)
     if (response.success) {
-      await loadArticles()
+      await fetchArticles()
       if (currentArticle.value?.id === article.id) {
         currentArticle.value.status = ArticleStatus.PUBLISHED
         currentArticle.value.statusText = ArticleStatusText[ArticleStatus.PUBLISHED]
@@ -527,7 +566,7 @@ const unpublishArticle = async (article: ArticleDTO) => {
   try {
     const response = await articleApi.unpublishArticle(article.id)
     if (response.success) {
-      await loadArticles()
+      await fetchArticles()
       if (currentArticle.value?.id === article.id) {
         currentArticle.value.status = ArticleStatus.DRAFT
         currentArticle.value.statusText = ArticleStatusText[ArticleStatus.DRAFT]
@@ -601,7 +640,7 @@ watch(currentArticle, (newArticle, oldArticle) => {
 
 // 初始化
 onMounted(() => {
-  loadArticles()
+  fetchArticles()
   loadTags()
 })
 
@@ -665,6 +704,45 @@ h1 {
   padding: 0.5rem;
   border: 1px solid #ddd;
   border-radius: 4px;
+}
+
+.sidebar-tags {
+  padding: 0.75rem 0;
+  border-top: 1px solid #eee;
+  margin-bottom: 0.5rem;
+}
+
+.filter-tags-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.filter-tag {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  background-color: #e9ecef;
+  color: #495057;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.filter-tag:hover {
+  background-color: #dee2e6;
+  color: #212529;
+}
+
+.filter-tag-active {
+  background-color: #4f46e5;
+  color: #fff;
+}
+
+.filter-tag-active:hover {
+  background-color: #4338ca;
+  color: #fff;
 }
 
 .article-list {

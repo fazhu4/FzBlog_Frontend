@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { settingApi } from '@/services/settingApi'
+import { articleApi } from '@/services/articleApi'
+import type { TagDTO } from '@/types/article'
 
 // 个人信息侧边栏组件
 interface SocialLink {
@@ -8,13 +10,24 @@ interface SocialLink {
   icon: string
   url: string
 }
+const self_introduction =ref("这个人很懒，什么都没写，快去催他");
+const loadInfo = async () => {
+  try {
+    const response = await settingApi.getSettings()
+    if (response.success && response.data?.self_introduction) {
+      self_introduction.value = response.data.self_introduction
+    }
+  } catch (err) {
+    console.error('获取个人介绍失败')
+  }
+}
 
+settingApi.getSettings()
 // 用户信息
 const userInfo = {
   name: '法助',
-  bio: '热爱技术，喜欢分享的前端开发者。专注于Vue、React和TypeScript。',
-  location: '中国',
-  website: 'https://github.com/fazhu',
+  bio: self_introduction,
+  location: '南京邮电大学通达学院',
 }
 
 // 默认头像（API 失败时的 fallback）
@@ -34,7 +47,9 @@ const loadAvatar = async () => {
 }
 
 onMounted(() => {
+  loadInfo()
   loadAvatar()
+  loadTags()
 })
 
 // 社交媒体链接
@@ -45,19 +60,35 @@ const socialLinks: SocialLink[] = [
   { platform: 'QQ', icon: '🐧', url: 'https://qm.qq.com/cgi-bin/qm/qr?k=a-XTxdLrnevkqoGTgPUQ43v9ZNShRYNK' },
 ]
 
-// 标签云
-const popularTags = [
-  'Vue 3',
-  'TypeScript',
-  '前端工程化',
-  '性能优化',
-  'React Hooks',
-  'CSS Grid',
-  '响应式设计',
-  'Webpack',
-  'Vite',
-  'Node.js',
-]
+// 标签列表（从后端获取）
+const tags = ref<TagDTO[]>([])
+const selectedTagIds = ref<Set<number>>(new Set())
+
+const emit = defineEmits<{
+  (e: 'update:selectedTags', tagIds: number[]): void
+}>()
+
+const loadTags = async () => {
+  try {
+    const response = await articleApi.getTags()
+    if (response.success && response.data) {
+      tags.value = response.data
+    }
+  } catch (err) {
+    console.error('获取标签列表失败:', err)
+  }
+}
+
+const toggleTag = (tagId: number) => {
+  if (selectedTagIds.value.has(tagId)) {
+    selectedTagIds.value.delete(tagId)
+  } else {
+    selectedTagIds.value.add(tagId)
+  }
+  // 触发响应式更新
+  selectedTagIds.value = new Set(selectedTagIds.value)
+  emit('update:selectedTags', Array.from(selectedTagIds.value))
+}
 </script>
 
 <template>
@@ -77,10 +108,6 @@ const popularTags = [
           <span class="location-icon">📍</span>
           {{ userInfo.location }}
         </div>
-        <a :href="userInfo.website" class="user-website" target="_blank">
-          <span class="website-icon">🌐</span>
-          {{ userInfo.website }}
-        </a>
       </div>
 
       <!-- 社交媒体链接 -->
@@ -104,10 +131,15 @@ const popularTags = [
 
     <!-- 标签云 -->
     <div class="tags-card">
-      <h3 class="section-title">热门标签</h3>
+      <h3 class="section-title">标签</h3>
       <div class="tags-cloud">
-        <span v-for="tag in popularTags" :key="tag" class="tag">
-          {{ tag }}
+        <span
+          v-for="tag in tags"
+          :key="tag.id"
+          :class="['tag', { 'tag-active': selectedTagIds.has(tag.id) }]"
+          @click="toggleTag(tag.id)"
+        >
+          {{ tag.name }}
         </span>
       </div>
     </div>
@@ -297,6 +329,16 @@ const popularTags = [
 .tag:hover {
   background-color: #e5e7eb;
   color: #4f46e5;
+}
+
+.tag-active {
+  background-color: #4f46e5;
+  color: #ffffff;
+}
+
+.tag-active:hover {
+  background-color: #4338ca;
+  color: #ffffff;
 }
 
 /* 响应式设计 */
