@@ -30,7 +30,7 @@ const buildImageUrl = (imgPath: string) => {
   if (imgPath.startsWith('http')) {
     return imgPath
   }
-  return `${FILE_BASE_URL}/api/files/view/${imgPath}`
+  return `${FILE_BASE_URL}/files/view/${imgPath}`
 }
 
 // 定义组件接收的属性（可选，用于外部传入文章数据）

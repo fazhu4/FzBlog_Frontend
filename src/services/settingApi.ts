@@ -11,7 +11,7 @@ class SettingApiService {
    * 获取站点设置
    */
   async getSettings(): Promise<ApiResponseSettingDTO> {
-    return http.get<SettingDTO>('/api/settings/setting')
+    return http.get<SettingDTO>('/settings/setting')
   }
 
   /**
@@ -22,7 +22,7 @@ class SettingApiService {
     if (fileName.startsWith('http')) {
       return fileName
     }
-    return `${FILE_BASE_URL}/api/files/view/${fileName}`
+    return `${FILE_BASE_URL}/files/view/${fileName}`
   }
 }
 
