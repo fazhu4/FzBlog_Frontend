@@ -2,8 +2,10 @@
 import { onMounted, ref } from 'vue'
 import { settingApi } from '@/services/settingApi'
 
+
+
 // 默认首页大图（API 失败时的 fallback）
-const DEFAULT_BANNER = 'http://localhost:8083/api/files/view/b68ef245-8fe7-4a0f-9b05-7e8d4a7329da.png'
+const DEFAULT_BANNER = ''
 
 const bannerUrl = ref(DEFAULT_BANNER)
 
@@ -16,6 +18,7 @@ const loadBanner = async () => {
     }
   } catch (err) {
     console.error('获取首页大图失败，使用默认图片:', err)
+  } finally {
   }
 }
 
@@ -25,6 +28,8 @@ onMounted(() => {
 </script>
 
 <template>
+
+
   <!-- 大背景图区） -->
   <section
     class="banner"

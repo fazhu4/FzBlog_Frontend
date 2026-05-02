@@ -46,8 +46,8 @@
   
 
           <!-- 文章封面图（如果有） -->
-          <div v-if="articleForDisplay.imageUrl" class="article-hero-image">
-            <img :src="articleForDisplay.imageUrl" :alt="articleForDisplay.title" />
+          <div v-if="articleForDisplay.img" class="article-hero-image">
+            <img :src="articleForDisplay.img" :alt="articleForDisplay.title" />
             <div class="image-overlay"></div>
           </div>
         </header>
@@ -57,33 +57,22 @@
           <!-- 文章内容区域 -->
           <div class="content-wrapper">
             <!-- 文章正文内容（Markdown 渲染） -->
-            <div ref="contentRef" class="article-paragraphs markdown-body"></div>
+            <div ref="contentRef" class="article-paragraphs "></div>
 
             <!-- 侧边栏信息 -->
             <aside class="article-sidebar">
 
 
               <!-- 文章标签 -->
-              <div class="tags-section" v-if="articleForDisplay.tags && articleForDisplay.tags.length">
-                <h4 class="section-title">相关文章标签</h4>
+              <div v-if="articleForDisplay.tags && articleForDisplay.tags.length">
+                <h4 >相关文章标签</h4>
                 <div class="tags-list">
                   <span v-for="tag in articleForDisplay.tags" :key="tag" class="tag-item">{{ tag }}</span>
                 </div>
               </div>
-
-              <!-- 推荐阅读 -->
-              <div class="related-articles">
-                <h4 class="section-title">推荐阅读</h4>
-                <div class="related-list">
-                  <div v-for="i in 3" :key="i" class="related-item">
-                    <div class="related-title">相关文章标题 {{ i }}</div>
-                    <div class="related-meta">2024-01-{{ 15 - i }}</div>
-                  </div>
-                </div>
-              </div>
             </aside>
           </div>
-        </article>
+         </article>
 
         <!-- 加载状态 -->
         <div v-if="isLoading" class="loading-state">
@@ -108,7 +97,9 @@ import { useRouter, useRoute } from 'vue-router'
 import Vditor from 'vditor'
 import 'vditor/dist/index.css'
 import { useArticleStore } from '@/stores/article'
-import type { ArticleDTO } from '@/types/article'
+import { http } from '@/services/http'
+import type { ArticleDTO, TagDTO } from '@/types/article'
+import { buildImageUrl } from '@/services/file'
 
 // 组件属性
 const router = useRouter()
@@ -122,6 +113,25 @@ const isBookmarked = ref(false)
 const likeCount = ref(42)
 const isLoading = ref(false)
 const contentRef = ref<HTMLDivElement | null>(null)
+
+// 标签名称映射（id → name）
+const tagMap = ref<Record<number, string>>({})
+
+// 获取所有标签
+const fetchTags = async () => {
+  try {
+    const res = await http.get<TagDTO[]>('/tags')
+    if (res.success && res.data) {
+      const map: Record<number, string> = {}
+      res.data.forEach(tag => {
+        map[tag.id] = tag.name
+      })
+      tagMap.value = map
+    }
+  } catch (error) {
+    console.error('获取标签失败:', error)
+  }
+}
 
 // 计算属性：将ArticleDTO转换为前端展示格式
 const articleForDisplay = computed(() => {
@@ -137,7 +147,10 @@ const articleForDisplay = computed(() => {
   const readTimeMinutes = Math.ceil(wordCount / 200)
   const readTime = `${readTimeMinutes}分钟`
 
-  const tags = article.value.tags?.length ? article.value.tags : []
+  // 将标签ID转换为标签名称
+  const tags = (article.value.tags || [])
+    .map(id => tagMap.value[id] || `#${id}`)
+    .filter(Boolean)
 
   // 如果有分类信息，可以从其他字段获取
   const category = article.value.statusText || '未分类'
@@ -152,7 +165,7 @@ const articleForDisplay = computed(() => {
     content,
     readTime,
     tags,
-    imageUrl:"",
+    img:buildImageUrl(article.value.img || ''),
     views: 1250,
     likes: 89,
   }
@@ -264,6 +277,7 @@ watch(
 
 // 生命周期钩子
 onMounted(() => {
+  fetchTags()
   fetchArticle()
 })
 </script>
@@ -420,8 +434,8 @@ onMounted(() => {
 
 .content-wrapper {
   display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 3rem;
+  grid-template-columns: 3fr 1fr;
+  gap: 2rem;
 }
 
 /* Markdown 内容样式 */
@@ -485,12 +499,7 @@ onMounted(() => {
   color: #9ca3af;
 }
 
-.section-title {
-  font-size: 1.125rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
-  color: #111827;
-}
+
 
 .tags-list {
   display: flex;
@@ -499,8 +508,8 @@ onMounted(() => {
 }
 
 .tag-item {
-  background-color: #f3f4f6;
-  color: #6b7280;
+  background-color: #9db7ea;
+  color: #ffffff;
   padding: 0.25rem 0.75rem;
   border-radius: 1rem;
   font-size: 0.75rem;
@@ -513,36 +522,7 @@ onMounted(() => {
   color: white;
 }
 
-.related-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
 
-.related-item {
-  padding: 1rem;
-  background-color: #f9fafb;
-  border-radius: 0.5rem;
-  border: 1px solid #e5e7eb;
-  transition: all 0.3s ease;
-}
-
-.related-item:hover {
-  background-color: #ffffff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.related-title {
-  font-weight: 600;
-  font-size: 0.875rem;
-  margin-bottom: 0.25rem;
-  color: #111827;
-}
-
-.related-meta {
-  font-size: 0.75rem;
-  color: #9ca3af;
-}
 
 /* 加载状态样式 */
 .loading-state {

@@ -58,6 +58,22 @@
         <div class="editor-main">
           <div v-if="currentArticle">
             <div class="editor-header">
+              <div class="cover-image-section">
+                <div class="cover-image-wrapper">
+                  <div v-if="coverImagePreview" class="cover-preview">
+                    <img :src="coverImagePreview" alt="封面预览" />
+                    <button class="btn-remove-cover" @click="removeCoverImage" title="移除封面">✕</button>
+                  </div>
+                  <label v-else class="cover-upload-area">
+                    <input type="file" accept="image/*" @change="onCoverFileChange" hidden :disabled="uploadingCover" />
+                    <span v-if="uploadingCover" class="cover-upload-text">上传中...</span>
+                    <template v-else>
+                      <span class="cover-upload-icon">🖼️</span>
+                      <span class="cover-upload-text">点击上传封面图</span>
+                    </template>
+                  </label>
+                </div>
+              </div>
               <input
                 type="text"
                 class="title-input"
@@ -123,6 +139,7 @@ import Vditor from 'vditor'
 import 'vditor/dist/index.css'
 import { articleApi } from '@/services/articleApi'
 import { http } from '@/services/http'
+import { buildUploadUrl, buildImageUrl } from '@/services/file'
 import type { ArticleDTO, CreateArticleRequest, UpdateArticleRequest, TagDTO } from '@/types/article'
 import { ArticleStatus, ArticleStatusText } from '@/types/article'
 
@@ -148,6 +165,60 @@ const selectedTagIds = ref<number[]>([])
 const originalSelectedTagIds = ref<number[]>([])
 const loadingTags = ref(false)
 const selectedFilterTagIds = ref<Set<number>>(new Set())
+
+// 封面图相关
+const coverImagePreview = ref<string>('')
+const coverImgName = ref<string>('')
+const originalCoverImgName = ref<string>('')
+const uploadingCover = ref(false)
+
+// ========== 编辑器上传占位 ==========
+const contentUploading = ref(false)
+// ========== END 编辑器上传占位 ==========
+
+// 上传封面图
+const onCoverFileChange = async (e: Event) => {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  uploadingCover.value = true
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+    // todo: 上传图片封装
+    const res = await fetch(buildUploadUrl('content'), {
+      method: 'POST',
+      body: formData,
+    })
+    const data = await res.json()
+    const filename = data.data?.filename // 修改为从 data.data（原data未处理返回值） 中获取 filename
+    if (filename) {
+      coverImgName.value = filename
+      coverImagePreview.value = buildImageUrl(filename)
+      if (currentArticle.value) {
+        currentArticle.value.img = filename
+      }
+    } else {
+      alert('封面上传失败：' + (data?.message + '未获取到文件名'))
+    }
+  } catch (err) {
+    console.error('封面上传失败:', err)
+    alert('封面上传失败')
+  } finally {
+    uploadingCover.value = false
+    input.value = ''
+  }
+}
+
+// 移除封面图
+const removeCoverImage = () => {
+  coverImagePreview.value = ''
+  coverImgName.value = ''
+  if (currentArticle.value) {
+    currentArticle.value.img = undefined
+  }
+}
 
 // 获取标签列表
 const loadTags = async () => {
@@ -198,6 +269,7 @@ const hasChanges = computed(() => {
     currentArticle.value.content !== originalArticle.value.content ||
     currentArticle.value.author !== originalArticle.value.author ||
     currentArticle.value.status !== originalArticle.value.status ||
+    currentArticle.value.img !== originalArticle.value.img ||
     tagsChanged
   )
 })
@@ -360,37 +432,53 @@ const initVditor = () => {
           const file = files[0]
           if (!file) return Promise.resolve('')
 
+          // ========== 编辑器上传占位：生成唯一占位符并插入 ==========
+          const placeholderId = `__UPLOAD_${Date.now()}_${Math.random().toString(36).slice(2, 8)}__`
+          const placeholderMd = `![⟳ 上传中...](${placeholderId})\n`
+          if (vditorInstance.value) {
+            vditorInstance.value.insertValue(placeholderMd)
+          }
+          contentUploading.value = true
+          // ========== END ==========
+
           const formData = new FormData()
           formData.append('file', file)
 
-          // 通过 Vite 代理上传到文件服务，避免跨域问题
-          return fetch('/api/files/upload', {
+          return fetch(buildUploadUrl(), {
             method: 'POST',
             body: formData,
           })
             .then(res => res.json())
             .then(data => {
-              // 响应: { success: true, data: { url: "/img/contents/xxx.png" } }
-              const fileUrl = data?.data?.url
-              if (fileUrl && vditorInstance.value) {
-                vditorInstance.value.insertValue(`![](${fileUrl})`)
+              const filename = data.data?.filename
+              if (filename && vditorInstance.value) {
+                // ========== 编辑器上传占位：替换为实际图片 ==========
+                const viewUrl = buildImageUrl(filename)
+                const content = vditorInstance.value.getValue()
+                vditorInstance.value.setValue(
+                  content.replace(`![⟳ 上传中...](${placeholderId})`, `![](${viewUrl})`)
+                )
+                // ========== END ==========
                 return ''
               }
               throw new Error('上传响应中未找到文件路径')
             })
             .catch((err) => {
-              console.error('图片上传失败，回退到 base64:', err)
-              const reader = new FileReader()
-              return new Promise<string>((resolve) => {
-                reader.onload = (e) => {
-                  const dataUrl = e.target?.result as string
-                  if (dataUrl && vditorInstance.value) {
-                    vditorInstance.value.insertValue(`![${file.name}](${dataUrl})`)
-                  }
-                  resolve('')
-                }
-                reader.readAsDataURL(file)
-              })
+              console.error('图片上传失败:', err)
+              // ========== 编辑器上传占位：替换为失败提示 ==========
+              if (vditorInstance.value) {
+                const content = vditorInstance.value.getValue()
+                vditorInstance.value.setValue(
+                  content.replace(`![⟳ 上传中...](${placeholderId})`, `> ⚠ 图片上传失败`)
+                )
+              }
+              // ========== END ==========
+              return Promise.resolve(err instanceof Error ? err.message : '上传失败')
+            })
+            .finally(() => {
+              // ========== 编辑器上传占位：结束 ==========
+              contentUploading.value = false
+              // ========== END ==========
             })
         }
       },
@@ -451,6 +539,11 @@ const selectArticle = async (article: ArticleDTO) => {
   selectedTagIds.value = [...(articleCopy.tags || [])]
   originalSelectedTagIds.value = [...selectedTagIds.value]
 
+  // 恢复封面图状态
+  coverImgName.value = articleCopy.img || ''
+  originalCoverImgName.value = coverImgName.value
+  coverImagePreview.value = articleCopy.img ? buildImageUrl(articleCopy.img) : ''
+
   // 更新编辑器内容
   updateVditorContent(articleCopy.content)
 }
@@ -474,7 +567,8 @@ const saveArticle = async (publish: boolean) => {
         content: articleToSave.content,
         author: articleToSave.author,
         status: articleToSave.status,
-        tags: selectedTagIds.value
+        tags: selectedTagIds.value,
+        img: coverImgName.value || undefined
       }
       response = await articleApi.createArticle(request)
       if (response.success && response.data) {
@@ -484,6 +578,9 @@ const saveArticle = async (publish: boolean) => {
         originalArticle.value = JSON.parse(JSON.stringify(response.data))
         selectedTagIds.value = [...(response.data.tags || [])]
         originalSelectedTagIds.value = [...selectedTagIds.value]
+        coverImgName.value = response.data.img || ''
+        originalCoverImgName.value = coverImgName.value
+        coverImagePreview.value = response.data.img ? buildImageUrl(response.data.img) : ''
       }
     } else {
       const request: UpdateArticleRequest = {
@@ -491,7 +588,8 @@ const saveArticle = async (publish: boolean) => {
         content: articleToSave.content,
         author: articleToSave.author,
         status: articleToSave.status,
-        tags: selectedTagIds.value
+        tags: selectedTagIds.value,
+        img: coverImgName.value || undefined
       }
       response = await articleApi.updateArticle(articleToSave.id, request)
       if (response.success && response.data) {
@@ -503,6 +601,9 @@ const saveArticle = async (publish: boolean) => {
         originalArticle.value = JSON.parse(JSON.stringify(response.data))
         selectedTagIds.value = [...(response.data.tags || [])]
         originalSelectedTagIds.value = [...selectedTagIds.value]
+        coverImgName.value = response.data.img || ''
+        originalCoverImgName.value = coverImgName.value
+        coverImagePreview.value = response.data.img ? buildImageUrl(response.data.img) : ''
       }
     }
 
@@ -586,6 +687,8 @@ const discardChanges = () => {
     currentArticle.value = JSON.parse(JSON.stringify(originalArticle.value))
     selectedTagIds.value = [...(currentArticle.value?.tags || [])]
     originalSelectedTagIds.value = [...selectedTagIds.value]
+    coverImgName.value = originalCoverImgName.value
+    coverImagePreview.value = originalCoverImgName.value ? buildImageUrl(originalCoverImgName.value) : ''
     updateVditorContent(currentArticle.value?.content || '')
   }
 }
@@ -828,6 +931,77 @@ h1 {
 
 .editor-header {
   margin-bottom: 1rem;
+}
+
+.cover-image-section {
+  margin-bottom: 1rem;
+}
+
+.cover-image-wrapper {
+  max-width: 320px;
+}
+
+.cover-preview {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e0e0e0;
+}
+
+.cover-preview img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  display: block;
+}
+
+.btn-remove-cover {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.btn-remove-cover:hover {
+  background: rgba(244, 67, 54, 0.8);
+}
+
+.cover-upload-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 120px;
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.2s, background-color 0.2s;
+  gap: 0.5rem;
+}
+
+.cover-upload-area:hover {
+  border-color: #2196f3;
+  background-color: #f5f8ff;
+}
+
+.cover-upload-icon {
+  font-size: 2rem;
+}
+
+.cover-upload-text {
+  font-size: 0.875rem;
+  color: #888;
 }
 
 .title-input {

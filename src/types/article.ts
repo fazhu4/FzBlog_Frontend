@@ -27,6 +27,7 @@ export interface CreateArticleRequest {
   author: string
   status?: ArticleStatus
   tags?: number[] // 文章标签ID列表
+  img?: string // 封面图片文件名
 }
 
 // 更新文章请求
@@ -36,6 +37,7 @@ export interface UpdateArticleRequest {
   author?: string
   status?: ArticleStatus
   tags?: number[] // 文章标签ID列表
+  img?: string // 封面图片文件名
 }
 
 // 文章DTO

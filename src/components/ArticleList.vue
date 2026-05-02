@@ -6,6 +6,7 @@ import { useRouter } from 'vue-router'
 import { onMounted, ref, watch } from 'vue'
 import { articleApi } from '@/services/articleApi'
 import type { ArticleCard } from '@/types/article'
+import { buildImageUrl } from '@/services/file'
 
 // 获取路由实例
 const router = useRouter()
@@ -21,17 +22,6 @@ const tagMap = ref<Record<number, string>>({}) // 标签ID -> 标签名称
 const isFirstLoad = ref(true)
 const PAGE_SIZE = 7
 
-// 文件服务基础URL
-const FILE_BASE_URL = import.meta.env.VITE_FILE_BASE_URL || 'http://localhost:8083'
-
-// 构建图片URL
-const buildImageUrl = (imgPath: string) => {
-  if (!imgPath) return ''
-  if (imgPath.startsWith('http')) {
-    return imgPath
-  }
-  return `${FILE_BASE_URL}/files/view/${imgPath}`
-}
 
 // 定义组件接收的属性（可选，用于外部传入文章数据）
 const props = defineProps<{
@@ -56,7 +46,7 @@ const fetchTags = async () => {
 // 将文章DTO的tag IDs映射为tag名称并填充到cards上
 const fillArticleTags = (cards: ArticleCard[], tagIdsList: (number[] | undefined)[]) => {
   tagIdsList.forEach((tagIds, i) => {
-    if (tagIds && tagIds.length > 0 && i < cards.length) {
+    if (tagIds && tagIds.length > 0 && i < cards.length && cards[i]!=null) {
       cards[i].tags = tagIds.map(id => tagMap.value[id]).filter((name): name is string => !!name)
     }
   })

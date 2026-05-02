@@ -30,10 +30,7 @@ const userInfo = {
   location: '南京邮电大学通达学院',
 }
 
-// 默认头像（API 失败时的 fallback）
-const DEFAULT_AVATAR = 'https://avatars.githubusercontent.com/u/26414?s=200&v=4'
-
-const avatarUrl = ref(DEFAULT_AVATAR)
+const avatarUrl = ref()
 
 const loadAvatar = async () => {
   try {
@@ -42,7 +39,7 @@ const loadAvatar = async () => {
       avatarUrl.value = settingApi.buildImageUrl(response.data.avatar)
     }
   } catch (err) {
-    console.error('获取头像设置失败，使用默认头像:', err)
+    console.error('获取头像设置失败', err)
   }
 }
 
