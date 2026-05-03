@@ -61,18 +61,6 @@ export interface ArticleCountDTO {
   draftCount: number // 草稿文章数量（只读）
 }
 
-// 批量删除请求
-export interface BatchDeleteRequest {
-  ids: number[] // 要删除的文章ID列表
-}
-
-// 批量删除结果DTO
-export interface BatchDeleteResultDTO {
-  totalCount: number // 总共尝试删除的文章数量
-  successCount: number // 成功删除的文章数量
-  failedCount: number // 删除失败的文章数量（只读）
-}
-
 // API响应基类
 export interface ApiResponse<T = void> {
   success: boolean // 请求是否成功
@@ -95,21 +83,11 @@ export type ApiResponseArticleDTO = ApiResponse<ArticleDTO>
 export type ApiResponseListArticleDTO = ApiResponse<ArticleDTO[]>
 export type ApiResponseListTagDTO = ApiResponse<TagDTO[]>
 export type ApiResponseArticleCountDTO = ApiResponse<ArticleCountDTO>
-export type ApiResponseBatchDeleteResultDTO = ApiResponse<BatchDeleteResultDTO>
 export type ApiResponseSettingDTO = ApiResponse<SettingDTO>
 // 分页查询参数
 export interface PaginationParams {
   pageNum?: number // 页码（从1开始）
   pageSize?: number // 每页大小（1-100）
-}
-
-// 文章查询参数
-export interface ArticleQueryParams {
-  pageNum?: number // 页码
-  pageSize?: number // 每页大小
-  author?: string // 作者名称
-  keyword?: string // 搜索关键词
-  status?: ArticleStatus // 文章状态
 }
 
 // 用于前端展示的文章卡片类型

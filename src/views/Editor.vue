@@ -106,8 +106,7 @@
                   </div>
                 </div>
                 <div class="editor-actions">
-                  <button class="btn btn-secondary" @click="saveArticle(false)">保存草稿</button>
-                  <button class="btn btn-primary" @click="saveArticle(true)">保存并发布</button>
+                  <button class="btn btn-primary" @click="saveArticle(false)">保存</button>
                   <button class="btn btn-danger" @click="discardChanges" v-if="hasChanges">放弃更改</button>
                 </div>
               </div>
@@ -162,7 +161,6 @@ const originalArticle = ref<ArticleDTO | null>(null)
 // 标签相关
 const availableTags = ref<TagDTO[]>([])
 const selectedTagIds = ref<number[]>([])
-const originalSelectedTagIds = ref<number[]>([])
 const loadingTags = ref(false)
 const selectedFilterTagIds = ref<Set<number>>(new Set())
 
@@ -171,10 +169,6 @@ const coverImagePreview = ref<string>('')
 const coverImgName = ref<string>('')
 const originalCoverImgName = ref<string>('')
 const uploadingCover = ref(false)
-
-// ========== 编辑器上传占位 ==========
-const contentUploading = ref(false)
-// ========== END 编辑器上传占位 ==========
 
 // 上传封面图
 const onCoverFileChange = async (e: Event) => {
@@ -438,7 +432,6 @@ const initVditor = () => {
           if (vditorInstance.value) {
             vditorInstance.value.insertValue(placeholderMd)
           }
-          contentUploading.value = true
           // ========== END ==========
 
           const formData = new FormData()
@@ -477,7 +470,6 @@ const initVditor = () => {
             })
             .finally(() => {
               // ========== 编辑器上传占位：结束 ==========
-              contentUploading.value = false
               // ========== END ==========
             })
         }
@@ -537,7 +529,6 @@ const selectArticle = async (article: ArticleDTO) => {
   currentArticle.value = articleCopy
   originalArticle.value = JSON.parse(JSON.stringify(articleCopy))
   selectedTagIds.value = [...(articleCopy.tags || [])]
-  originalSelectedTagIds.value = [...selectedTagIds.value]
 
   // 恢复封面图状态
   coverImgName.value = articleCopy.img || ''
@@ -577,8 +568,7 @@ const saveArticle = async (publish: boolean) => {
         currentArticle.value = response.data
         originalArticle.value = JSON.parse(JSON.stringify(response.data))
         selectedTagIds.value = [...(response.data.tags || [])]
-        originalSelectedTagIds.value = [...selectedTagIds.value]
-        coverImgName.value = response.data.img || ''
+                coverImgName.value = response.data.img || ''
         originalCoverImgName.value = coverImgName.value
         coverImagePreview.value = response.data.img ? buildImageUrl(response.data.img) : ''
       }
@@ -600,8 +590,7 @@ const saveArticle = async (publish: boolean) => {
         currentArticle.value = response.data
         originalArticle.value = JSON.parse(JSON.stringify(response.data))
         selectedTagIds.value = [...(response.data.tags || [])]
-        originalSelectedTagIds.value = [...selectedTagIds.value]
-        coverImgName.value = response.data.img || ''
+                coverImgName.value = response.data.img || ''
         originalCoverImgName.value = coverImgName.value
         coverImagePreview.value = response.data.img ? buildImageUrl(response.data.img) : ''
       }
@@ -686,8 +675,7 @@ const discardChanges = () => {
   if (originalArticle.value) {
     currentArticle.value = JSON.parse(JSON.stringify(originalArticle.value))
     selectedTagIds.value = [...(currentArticle.value?.tags || [])]
-    originalSelectedTagIds.value = [...selectedTagIds.value]
-    coverImgName.value = originalCoverImgName.value
+        coverImgName.value = originalCoverImgName.value
     coverImagePreview.value = originalCoverImgName.value ? buildImageUrl(originalCoverImgName.value) : ''
     updateVditorContent(currentArticle.value?.content || '')
   }

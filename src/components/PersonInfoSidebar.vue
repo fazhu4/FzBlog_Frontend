@@ -10,19 +10,25 @@ interface SocialLink {
   icon: string
   url: string
 }
+
 const self_introduction =ref("这个人很懒，什么都没写，快去催他");
-const loadInfo = async () => {
+const avatarUrl = ref()
+
+const loadsetting = async () => {
   try {
     const response = await settingApi.getSettings()
-    if (response.success && response.data?.self_introduction) {
+    if (response.success && response.data?.avatar) {
+      avatarUrl.value = settingApi.buildImageUrl(response.data.avatar)
       self_introduction.value = response.data.self_introduction
     }
   } catch (err) {
+    console.error('获取头像设置失败', err)
     console.error('获取个人介绍失败')
   }
 }
 
-settingApi.getSettings()
+
+
 // 用户信息
 const userInfo = {
   name: '法助',
@@ -30,22 +36,10 @@ const userInfo = {
   location: '南京邮电大学通达学院',
 }
 
-const avatarUrl = ref()
 
-const loadAvatar = async () => {
-  try {
-    const response = await settingApi.getSettings()
-    if (response.success && response.data?.avatar) {
-      avatarUrl.value = settingApi.buildImageUrl(response.data.avatar)
-    }
-  } catch (err) {
-    console.error('获取头像设置失败', err)
-  }
-}
 
 onMounted(() => {
-  loadInfo()
-  loadAvatar()
+  loadsetting()
   loadTags()
 })
 
@@ -61,10 +55,7 @@ const socialLinks: SocialLink[] = [
 const tags = ref<TagDTO[]>([])
 const selectedTagIds = ref<Set<number>>(new Set())
 
-const emit = defineEmits<{
-  (e: 'update:selectedTags', tagIds: number[]): void
-}>()
-
+  
 const loadTags = async () => {
   try {
     const response = await articleApi.getTags()
@@ -75,6 +66,12 @@ const loadTags = async () => {
     console.error('获取标签列表失败:', err)
   }
 }
+
+const emit = defineEmits<{
+  (e: 'update:selectedTags', tagIds: number[]): void
+}>()
+
+
 
 const toggleTag = (tagId: number) => {
   if (selectedTagIds.value.has(tagId)) {
@@ -202,20 +199,6 @@ const toggleTag = (tagId: number) => {
   margin-bottom: 0.5rem;
 }
 
-.user-website {
-  text-decoration: none;
-  transition: color 0.2s ease;
-}
-
-.user-website:hover {
-  color: #4f46e5;
-}
-
-.location-icon,
-.website-icon {
-  font-size: 1rem;
-}
-
 .section-title {
   font-size: 1.125rem;
   font-weight: 600;
@@ -261,48 +244,11 @@ const toggleTag = (tagId: number) => {
   font-weight: 500;
 }
 
-.stats-card,
 .tags-card {
   background-color: #ffffff;
   border-radius: 0.75rem;
   padding: 1.5rem;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-}
-
-.categories-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.category-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem;
-  background-color: #f9fafb;
-  border-radius: 0.5rem;
-  transition: background-color 0.2s ease;
-}
-
-.category-item:hover {
-  background-color: #e5e7eb;
-}
-
-.category-name {
-  font-size: 0.875rem;
-  color: #4b5563;
-}
-
-.category-count {
-  background-color: #4f46e5;
-  color: white;
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 0.25rem 0.5rem;
-  border-radius: 1rem;
-  min-width: 2rem;
-  text-align: center;
 }
 
 .tags-cloud {

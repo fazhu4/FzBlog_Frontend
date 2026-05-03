@@ -1,48 +1,23 @@
-# FzBlog_Frontend
-
-This template should help get you started developing with Vue 3 in Vite.
-
-## Recommended IDE Setup
-
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
-
-## Recommended Browser Setup
-
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
-
-## Type Support for `.vue` Imports in TS
-
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
-
-```sh
-npm install
-```
-
-### Compile and Hot-Reload for Development
-
-```sh
-npm run dev
-```
-
-### Type-Check, Compile and Minify for Production
-
-```sh
-npm run build
-```
-
-### Run Unit Tests with [Vitest](https://vitest.dev/)
-
-```sh
-npm run test:unit
-```
+# TODO
+- 设置系统信息背景图片 
+	- 设置在setting信息中
+	- 2026.5.3 - 2026.5.
+- 完善阅读字段
+	- 连接增加阅读量接口，进文章请求增加阅读量
+	- 2026.5.3 - 2026.5.
+- 文章详细页面优化
+	- “相关文章标签”吸顶时文字会被盖住
+	- 文章标题离返回列表太近
+	- 标签下方空白太多，需增加内容
+	- 2026.5.3 - 2026.5.
+- 编辑器外框问题
+	- 编辑器板块白框脱离编辑器组件
+	- 2026.5.3 - 2026.5.
+- 编辑器提交按钮逻辑
+	- 俩按钮逻辑似乎相同，需解读代码
+	- 实测仅保留保存草稿即可，下拉框选择发布情况
+	- 2026.5.3 - 2026.5.
+- 新页面布局
+	- 思考博客新页面内容，长期工作
+	- 目前考虑集成简单小游戏 - 2025.5.3
+	- 2026.5.3 - 2026.5.

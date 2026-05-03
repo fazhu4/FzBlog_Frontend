@@ -108,9 +108,6 @@ const articleStore = useArticleStore()
 
 // 响应式数据
 const article = ref<ArticleDTO | null>(null)
-const isLiked = ref(false)
-const isBookmarked = ref(false)
-const likeCount = ref(42)
 const isLoading = ref(false)
 const contentRef = ref<HTMLDivElement | null>(null)
 
@@ -137,14 +134,11 @@ const fetchTags = async () => {
 const articleForDisplay = computed(() => {
   if (!article.value) return null
 
-  // 从ArticleDTO转换为前端需要的格式
   const content = article.value.content || ''
-  const excerpt = content.length > 150 ? content.substring(0, 150) + '...' : content
   const date = new Date(article.value.createTime).toISOString().split('T')[0]
 
   // 估算阅读时间
-  const wordCount = content.length
-  const readTimeMinutes = Math.ceil(wordCount / 200)
+  const readTimeMinutes = Math.ceil(content.length / 200)
   const readTime = `${readTimeMinutes}分钟`
 
   // 将标签ID转换为标签名称
@@ -152,22 +146,16 @@ const articleForDisplay = computed(() => {
     .map(id => tagMap.value[id] || `#${id}`)
     .filter(Boolean)
 
-  // 如果有分类信息，可以从其他字段获取
-  const category = article.value.statusText || '未分类'
-
   return {
     id: article.value.id,
     title: article.value.title,
-    excerpt,
     date,
     author: article.value.author,
-    category,
     content,
     readTime,
     tags,
-    img:buildImageUrl(article.value.img || ''),
+    img: buildImageUrl(article.value.img || ''),
     views: 1250,
-    likes: 89,
   }
 })
 
@@ -240,29 +228,6 @@ const fetchArticle = async () => {
 // 方法
 const goBack = () => {
   router.back()
-}
-
-const shareArticle = () => {
-  if (navigator.share && article.value) {
-    navigator.share({
-      title: article.value.title,
-      text: article.value.content?.substring(0, 100) || '',
-      url: window.location.href,
-    })
-  } else {
-    // 降级处理：复制链接到剪贴板
-    navigator.clipboard.writeText(window.location.href)
-    alert('链接已复制到剪贴板')
-  }
-}
-
-const toggleLike = () => {
-  isLiked.value = !isLiked.value
-  likeCount.value += isLiked.value ? 1 : -1
-}
-
-const toggleBookmark = () => {
-  isBookmarked.value = !isBookmarked.value
 }
 
 // 监听路由变化，当文章ID改变时重新获取数据
@@ -391,17 +356,6 @@ onMounted(() => {
   font-size: 1rem;
 }
 
-.article-excerpt-large {
-  font-size: 1.25rem;
-  color: #4b5563;
-  line-height: 1.7;
-  margin-bottom: 2rem;
-  padding: 1.5rem;
-  background-color: #f9fafb;
-  border-left: 4px solid #4f46e5;
-  border-radius: 0.5rem;
-}
-
 .article-hero-image {
   width: 100%;
   height: 400px;
@@ -447,59 +401,9 @@ onMounted(() => {
 /* 侧边栏样式 */
 .article-sidebar {
   position: sticky;
-  top: 2rem;
+  top: 5rem;
   height: fit-content;
 }
-
-.author-card {
-  background-color: #ffffff;
-  border-radius: 1rem;
-  padding: 1.5rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  margin-bottom: 2rem;
-  border: 1px solid #e5e7eb;
-}
-
-.author-avatar {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  overflow: hidden;
-  margin: 0 auto 1rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-}
-
-.author-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.author-name {
-  font-size: 1.25rem;
-  font-weight: 700;
-  text-align: center;
-  margin-bottom: 0.5rem;
-  color: #111827;
-}
-
-.author-bio {
-  font-size: 0.875rem;
-  color: #6b7280;
-  text-align: center;
-  margin-bottom: 1rem;
-  line-height: 1.5;
-}
-
-.author-stats {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  font-size: 0.75rem;
-  color: #9ca3af;
-}
-
-
 
 .tags-list {
   display: flex;
@@ -553,65 +457,6 @@ onMounted(() => {
   }
 }
 
-/* 文章底部交互区域 */
-.article-footer {
-  border-top: 1px solid #e5e7eb;
-  padding-top: 2rem;
-  margin-top: 3rem;
-}
-
-.interaction-bar {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-.interaction-bar button {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 0.5rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 0.875rem;
-}
-
-.share-button {
-  background-color: #4f46e5;
-  color: white;
-}
-
-.share-button:hover {
-  background-color: #4338ca;
-  transform: translateY(-1px);
-}
-
-.like-button {
-  background-color: #f3f4f6;
-  color: #6b7280;
-  border: 1px solid #d1d5db;
-}
-
-.like-button:hover {
-  background-color: #4f46e5;
-  color: white;
-}
-
-.bookmark-button {
-  background-color: #f3f4f6;
-  color: #6b7280;
-  border: 1px solid #d1d5db;
-}
-
-.bookmark-button:hover {
-  background-color: #10b981;
-  color: white;
-}
-
 /* 响应式设计 */
 @media (max-width: 1024px) {
   .content-wrapper {
@@ -648,14 +493,6 @@ onMounted(() => {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .interaction-bar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .interaction-bar button {
-    justify-content: center;
-  }
 }
 
 @media (max-width: 480px) {

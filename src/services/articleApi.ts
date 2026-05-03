@@ -1,22 +1,17 @@
 // 文章API服务
 import { http } from './http'
 import {
-  ArticleStatus,
   type CreateArticleRequest,
   type UpdateArticleRequest,
   type ArticleDTO,
   type ArticleCountDTO,
-  type BatchDeleteRequest,
-  type BatchDeleteResultDTO,
   type TagDTO,
   type ApiResponseVoid,
   type ApiResponseArticleDTO,
   type ApiResponseListArticleDTO,
   type ApiResponseArticleCountDTO,
-  type ApiResponseBatchDeleteResultDTO,
   type ApiResponseListTagDTO,
   type PaginationParams,
-  type ArticleQueryParams,
 } from '@/types/article'
 
 // 文章API服务类
@@ -117,38 +112,7 @@ class ArticleApiService {
   }
 
   /**
-   * 批量删除文章
-   */
-  async deleteArticlesBatch(data: BatchDeleteRequest): Promise<ApiResponseBatchDeleteResultDTO> {
-    return http.delete<BatchDeleteResultDTO>(`/articles/batch`, {
-      body: JSON.stringify(data),
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
-  }
-
-  /**
-   * 通用文章查询方法
-   */
-  async queryArticles(params: ArticleQueryParams): Promise<ApiResponseListArticleDTO> {
-    // 根据参数决定调用哪个接口
-    if (params.keyword) {
-      return this.searchArticles(params.keyword)
-    } else if (params.author) {
-      return this.getArticlesByAuthor(params.author)
-    } else if (params.status === ArticleStatus.PUBLISHED) {
-      return this.getPublishedArticles({
-        pageNum: params.pageNum,
-        pageSize: params.pageSize,
-      })
-    } else {
-      return this.getAllArticles()
-    }
-  }
-
-  /**
-   * 将ArticleDTO转换为前端展示的ArticleCard格式
+   * 将ArticleDTO转换为前端展示的ArticleCard格式2
    */
   convertToArticleCard(article: ArticleDTO): any {
     // 这里可以根据实际业务需求进行转换
