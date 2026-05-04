@@ -75,6 +75,7 @@ export interface SettingDTO {
   banner: string // 首页大图文件名
   avatar: string // 头像文件名
   self_introduction: string //自我介绍
+  background: string //背景图片文件名
 }
 
 // 特定API响应类型

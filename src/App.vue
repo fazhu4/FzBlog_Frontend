@@ -1,5 +1,22 @@
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import { RouterLink, RouterView } from 'vue-router'
+import { settingApi } from '@/services/settingApi'
+
+onMounted(async () => {
+  try {
+    const res = await settingApi.getSettings()
+    if (res.success && res.data?.background) {
+      const url = settingApi.buildImageUrl(res.data.background)
+      document.body.style.backgroundImage = `url('${url}')`
+      document.body.style.backgroundAttachment = 'fixed'
+      document.body.style.backgroundSize = 'cover'
+      document.body.style.backgroundPosition = 'center'
+    }
+  } catch (err) {
+    console.error('加载背景图失败:', err)
+  }
+})
 </script>
 
 
