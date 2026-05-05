@@ -232,10 +232,10 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* 文章区域样式 */
+/* 文章区域样式  TODO*/
 .articles-section {
   padding: 5rem 0;
-  background-color: #f9fafb;
+  background-color: #fecaca;
 }
 
 .container {
@@ -581,14 +581,14 @@ onMounted(() => {
   background-color: #b91c1c;
 }
 
-/* 空状态样式 */
+/* 空状态样式 TODO */
 .empty-state {
   text-align: center;
   padding: 4rem 2rem;
   color: #6b7280;
   font-size: 1.125rem;
-  background-color: #f9fafb;
   border-radius: 0.5rem;
   margin: 2rem 0;
+  background-color: #4f46e5; 
 }
 </style>

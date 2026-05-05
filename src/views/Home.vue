@@ -30,7 +30,7 @@ const onSelectedTagsChange = (tagIds: number[]) => {
 
 <style scoped>
 .content-section {
-  background-color: #f9fafb;
+  /* 不设背景色，让 body 背景图透出 */
 }
 
 .content-inner {

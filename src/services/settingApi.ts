@@ -11,7 +11,7 @@ class SettingApiService {
   async getSettings(): Promise<ApiResponseSettingDTO> {
     if (this.cache) return this.cache
     if (this.pending) return this.pending
-    this.pending = http.get<SettingDTO>('/settings/setting').then(res => {
+    this.pending = http.get<SettingDTO>('/settings').then(res => {
       this.cache = res
       return res
     })
