@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { RouterLink, RouterView } from 'vue-router'
-import { settingApi } from '@/services/settingApi'
+import Footer from '@/components/Footer.vue'
 
 const bgUrl = '/b68ef245-8fe7-4a0f-9b05-7e8d4a7329da.png'
 
@@ -32,6 +32,9 @@ onMounted(async () => {
       <div class="logo">FzBlog</div>
       <div class="nav-links">
         <RouterLink to="/" class="nav-link">首页</RouterLink>
+        <a href="#" class="nav-link" @click.prevent>归档</a>
+        <a href="#" class="nav-link" @click.prevent>关于</a>
+        <a href="#" class="nav-link" @click.prevent>RSS</a>
         <RouterLink to="/editor" class="nav-link">编辑器</RouterLink>
       </div>
     </nav>
@@ -39,6 +42,7 @@ onMounted(async () => {
   <main class="app-main">
     <RouterView />
   </main>
+  <Footer />
 </template>
 
 <style>
@@ -53,9 +57,15 @@ html {
 }
 
 body {
-  min-height: 100%;
+  min-height: 100vh;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   background-color: #f5f5f5;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
 .app-header {
@@ -105,6 +115,6 @@ body {
 }
 
 .app-main {
-  min-height: calc(100vh - 60px);
+  flex: 1;
 }
 </style>

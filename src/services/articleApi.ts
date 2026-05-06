@@ -34,7 +34,7 @@ class ArticleApiService {
    * 获取文章详情
    */
   async getArticleById(id: number): Promise<ApiResponseArticleDTO> {
-    return http.get<ArticleDTO>(`/articles/${id}/detailed`)
+    return http.get<ArticleDTO>(`/articles/${id}`)
   }
 
   /**

@@ -1,92 +1,91 @@
 <script setup lang="ts">
-// 页脚组件
-// 显示网站底部信息和链接
+const currentYear = new Date().getFullYear()
 </script>
 
 <template>
-  <!-- 页脚 -->
   <footer class="footer">
-    <div class="container">
-      <div class="footer-content">
-        <div class="footer-info">
-          <h3>FzBlog</h3>
-          <p>一个专注于技术分享和思考的博客平台</p>
-        </div>
-        <div class="footer-links">
-          <a href="#">关于我们</a>
-          <a href="#">联系</a>
-          <a href="#">隐私政策</a>
-          <a href="#">使用条款</a>
-        </div>
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <h3 class="footer-logo">FzBlog</h3>
+        <p class="footer-tagline">一个神入的博客平台</p>
       </div>
-      <div class="footer-copyright">
-        <p>© 2024 FzBlog. 保留所有权利.</p>
-      </div>
+      <nav class="footer-links">
+        <RouterLink to="/">首页</RouterLink>
+        <RouterLink to="/editor">编辑器</RouterLink>
+        <a href="#" @click.prevent>归档</a>
+        <a href="#" @click.prevent>关于</a>
+        <a href="#" @click.prevent>RSS</a>
+      </nav>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; {{ currentYear }} FzBlog. 保留所有权利.</p>
     </div>
   </footer>
 </template>
 
 <style scoped>
-/* 页脚样式 */
 .footer {
-  background-color: #1f2937;
-  color: white;
-  padding: 3rem 0 1.5rem;
+  background-color: #1a1a2e;
+  color: rgba(255, 255, 255, 0.85);
+  padding: 2.5rem 1.5rem 1.25rem;
+  margin-top: auto;
 }
 
-.container {
+.footer-inner {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 1.5rem;
-}
-
-.footer-content {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 2rem;
+  gap: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.footer-info h3 {
-  font-size: 1.5rem;
-  margin-bottom: 0.5rem;
+.footer-logo {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+  color: #fff;
+  letter-spacing: 0.02em;
 }
 
-.footer-info p {
-  color: rgba(255, 255, 255, 0.7);
+.footer-tagline {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.5);
+  line-height: 1.5;
 }
 
 .footer-links {
   display: flex;
-  gap: 2rem;
+  gap: 1.75rem;
+  flex-wrap: wrap;
 }
 
 .footer-links a {
-  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
   text-decoration: none;
-  transition: all 0.3s ease;
+  transition: color 0.2s;
 }
 
 .footer-links a:hover {
-  color: white;
+  color: #fff;
 }
 
-.footer-copyright {
+.footer-bottom {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-top: 1rem;
   text-align: center;
-  padding-top: 1.5rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.35);
 }
 
-/* 响应式设计 */
 @media (max-width: 768px) {
-  .footer-content {
+  .footer-inner {
     flex-direction: column;
-    gap: 1.5rem;
-  }
-
-  .footer-links {
-    flex-wrap: wrap;
+    gap: 1.25rem;
   }
 }
 </style>

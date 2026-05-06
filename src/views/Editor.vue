@@ -751,13 +751,15 @@ onUnmounted(() => {
 
 <style scoped>
 .editor-page {
-  padding: 2rem 0;
+  padding: 3rem 0;
 }
 
 .container {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 0 1rem;
+  padding: 1rem 2rem;
+  background-color: #f0f2f5;
+  border-radius: 12px;
 }
 
 h1 {
@@ -768,16 +770,19 @@ h1 {
 .editor-layout {
   display: flex;
   gap: 2rem;
-  height: calc(100vh - 200px);
+  align-items: flex-start;
 }
 
 .sidebar {
   width: 300px;
+  flex-shrink: 0;
   background: #f8f9fa;
   border-radius: 8px;
   padding: 1rem;
   display: flex;
   flex-direction: column;
+  position: sticky;
+  top: 80px;
 }
 
 .sidebar-header {
@@ -839,6 +844,7 @@ h1 {
 .article-list {
   flex: 1;
   overflow-y: auto;
+  max-height: 35rem;
 }
 
 .article-item {
@@ -909,6 +915,7 @@ h1 {
 
 .editor-main {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   background: white;
@@ -1027,7 +1034,6 @@ h1 {
 
 .editor-container {
   flex: 1;
-  min-height: 400px;
   border: 1px solid #ddd;
   border-radius: 4px;
   overflow: hidden;

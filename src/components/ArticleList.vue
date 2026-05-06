@@ -7,9 +7,11 @@ import { onMounted, ref, watch } from 'vue'
 import { articleApi } from '@/services/articleApi'
 import type { ArticleCard } from '@/types/article'
 import { buildImageUrl } from '@/services/file'
+import { useArticleStore } from '@/stores/article'
 
 // 获取路由实例
 const router = useRouter()
+const articleStore = useArticleStore()
 
 // 响应式数据
 const articles = ref<ArticleCard[]>([])
@@ -74,6 +76,8 @@ const init = async () => {
       fetchTags(),
     ])
     if (articleRes.success && articleRes.data) {
+      // 缓存完整文章数据到 store，详情页可直接使用避免重复请求
+      articleStore.cacheArticles(articleRes.data)
       const cards = articleApi.convertToArticleCards(articleRes.data)
       fillArticleTags(cards, articleRes.data.map(d => d.tags))
       articles.value = cards
@@ -105,6 +109,8 @@ const loadMoreArticles = async () => {
   try {
     const response = await articleApi.getPublishedArticles({ pageNum: pageNum.value, pageSize: PAGE_SIZE }, props.selectedTags)
     if (response.success && response.data) {
+      // 同样缓存加载更多的文章数据
+      articleStore.cacheArticles(response.data)
       const newCards = articleApi.convertToArticleCards(response.data)
       fillArticleTags(newCards, response.data.map(d => d.tags))
       articles.value.push(...newCards)
@@ -241,8 +247,8 @@ onMounted(() => {
 .container {
   max-width: 1200px;
   margin: 0 auto;
-  padding-left: 0;
-  padding-right: 1.5rem;
+  padding-left: 50px;
+  padding-right: 50px;
 }
 
 .section-header {

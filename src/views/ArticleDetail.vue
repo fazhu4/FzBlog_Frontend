@@ -383,6 +383,9 @@ onMounted(() => {
 
 /* 文章主体样式 */
 .article-body {
+  background-color: #ffffff;
+  border-radius: 0.75rem;
+  padding: 2rem;
   margin-bottom: 4rem;
 }
 
