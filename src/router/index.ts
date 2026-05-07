@@ -1,10 +1,14 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory ,createWebHashHistory} from 'vue-router'
 import Home from '@/views/Home.vue'
 import Editor from '@/views/Editor.vue'
 import ArticleDetail from '@/views/ArticleDetail.vue'
 
+const useHashMode = import.meta.env.VITE_ROUTER_MODE === 'hash'
+
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+ history: useHashMode 
+    ? createWebHashHistory(import.meta.env.BASE_URL)   // hash 模式，同样传入 BASE_URL
+    : createWebHistory(import.meta.env.BASE_URL),      // history 模式
   routes: [
     {
       path: '/',
