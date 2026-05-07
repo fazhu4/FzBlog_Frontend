@@ -35,7 +35,6 @@ onMounted(async () => {
         <a href="#" class="nav-link" @click.prevent>归档</a>
         <a href="#" class="nav-link" @click.prevent>关于</a>
         <a href="#" class="nav-link" @click.prevent>RSS</a>
-        <RouterLink to="/editor" class="nav-link">编辑器</RouterLink>
       </div>
     </nav>
   </header>

@@ -11,7 +11,6 @@ const currentYear = new Date().getFullYear()
       </div>
       <nav class="footer-links">
         <RouterLink to="/">首页</RouterLink>
-        <RouterLink to="/editor">编辑器</RouterLink>
         <a href="#" @click.prevent>归档</a>
         <a href="#" @click.prevent>关于</a>
         <a href="#" @click.prevent>RSS</a>
