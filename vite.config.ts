@@ -19,29 +19,67 @@ const MIME_TYPES: Record<string, string> = {
   '.woff2': 'font/woff2',
 }
 
-// 将 /vditor/* 请求映射到 node_modules/vditor/*，解决 Vditor cdn 配置的本地加载问题
-// Vditor 默认 cdn 格式为 https://unpkg.com/vditor@x.x.x，不含 /dist
-// 资源路径为 {cdn}/dist/js/...，所以 /vditor 应对应到 node_modules/vditor
-function vditorStaticPlugin() {
+// 递归复制目录
+function copyDir(src: string, dest: string) {
+  if (!fs.existsSync(src)) return
+  fs.mkdirSync(dest, { recursive: true })
+  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    const srcPath = path.join(src, entry.name)
+    const destPath = path.join(dest, entry.name)
+    if (entry.isDirectory()) {
+      copyDir(srcPath, destPath)
+    } else {
+      fs.copyFileSync(srcPath, destPath)
+    }
+  }
+}
+
+// 在请求路径中定位 /vditor/ 的偏移量，提取其后的相对路径
+function extractVditorRelative(url: string): string | null {
+  const idx = url.indexOf('/vditor/')
+  if (idx === -1) return null
+  return url.slice(idx + '/vditor/'.length).split('?')[0]
+}
+
+function vditorPlugin() {
   const vditorRoot = path.resolve(__dirname, 'node_modules/vditor')
+
+  // 开发模式：将 /vditor/* 和 /{base}vditor/* 映射到 node_modules/vditor/*
+  function serveFile(url: string, res: any): boolean {
+    const relativePath = extractVditorRelative(url)
+    if (!relativePath) return false
+    const filePath = path.join(vditorRoot, relativePath)
+    try {
+      if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+        const content = fs.readFileSync(filePath)
+        const mime = MIME_TYPES[path.extname(filePath)] || 'application/octet-stream'
+        res.setHeader('Content-Type', mime)
+        res.setHeader('Cache-Control', 'public, max-age=3600')
+        res.end(content)
+        return true
+      }
+    } catch { /* fall through */ }
+    return false
+  }
+
   return {
-    name: 'vditor-static',
+    name: 'vditor-plugin',
+    // 开发服务器：拦截 /vditor/ 请求，直接从 node_modules 返回文件
     configureServer(server: any) {
-      server.middlewares.use('/vditor', (req: any, res: any, next: any) => {
-        const relativePath = (req.url || '/').split('?')[0].replace(/^\/vditor\/?/, '')
-        const filePath = path.join(vditorRoot, relativePath)
-        try {
-          if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-            const content = fs.readFileSync(filePath)
-            const mime = MIME_TYPES[path.extname(filePath)] || 'application/octet-stream'
-            res.setHeader('Content-Type', mime)
-            res.setHeader('Cache-Control', 'public, max-age=3600')
-            res.end(content)
-            return
-          }
-        } catch { /* fall through to next middleware */ }
+      server.middlewares.use((req: any, res: any, next: any) => {
+        if (serveFile(req.url || '/', res)) return
         next()
       })
+    },
+    // 生产构建：将 node_modules/vditor/dist 复制到 dist/vditor/dist，
+    // 使得 {base}vditor/dist/... 路径在部署后能找到文件
+    writeBundle() {
+      const outDir = path.resolve(__dirname, 'dist')
+      const srcDist = path.join(vditorRoot, 'dist')
+      const destDist = path.join(outDir, 'vditor', 'dist')
+      console.log('[vditor-plugin] 复制 vditor 静态资源到构建输出...')
+      copyDir(srcDist, destDist)
+      console.log('[vditor-plugin] 复制完成')
     },
   }
 }
@@ -52,7 +90,7 @@ export default defineConfig({
   plugins: [
     vue(),
     vueDevTools(),
-    vditorStaticPlugin(),
+    vditorPlugin(),
   ],
   resolve: {
     alias: {

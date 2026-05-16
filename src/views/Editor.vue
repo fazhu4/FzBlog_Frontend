@@ -391,8 +391,7 @@ const initVditor = () => {
       cache: {
         enable: false
       },
-      cdn: '/vditor',
-      _lutePath: '/vditor/dist/js/lute/lute.min.js',
+      cdn: import.meta.env.BASE_URL + 'vditor',
       mode: 'sv',
       preview: {
         delay: 100,

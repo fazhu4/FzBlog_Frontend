@@ -165,12 +165,12 @@ const renderMarkdown = async () => {
 
   try {
     await Vditor.preview(contentRef.value, article.value.content, {
-      cdn: '/vditor',
+      cdn: import.meta.env.BASE_URL + 'vditor',
       lang: 'zh_CN',
       mode: 'light',
       theme: {
         current: 'light',
-        path: '/vditor/dist/css/content-theme',
+        path: import.meta.env.BASE_URL + 'vditor/dist/css/content-theme',
       },
       hljs: {
         lineNumber: true,
