@@ -241,7 +241,7 @@ onMounted(() => {
 /* 文章区域样式  TODO*/
 .articles-section {
   padding: 5rem 0;
-  background-color: #fecaca;
+  /* background-color: #fecaca; */
 }
 
 .container {

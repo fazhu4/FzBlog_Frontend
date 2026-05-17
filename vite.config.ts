@@ -19,7 +19,6 @@ const MIME_TYPES: Record<string, string> = {
   '.woff2': 'font/woff2',
 }
 
-// 递归复制目录
 function copyDir(src: string, dest: string) {
   if (!fs.existsSync(src)) return
   fs.mkdirSync(dest, { recursive: true })
@@ -34,19 +33,33 @@ function copyDir(src: string, dest: string) {
   }
 }
 
-// 在请求路径中定位 /vditor/ 的偏移量，提取其后的相对路径
-function extractVditorRelative(url: string): string | null {
-  const idx = url.indexOf('/vditor/')
-  if (idx === -1) return null
-  return url.slice(idx + '/vditor/'.length).split('?')[0]
+// Vditor 运行时动态加载的子目录资源（通过 <script> 标签注入）
+// 只拦截这些子路径，放行 dist 根目录文件（如 dist/index.css），避免干扰 Vite CSS 编译
+const VDITOR_RUNTIME_DIRS = [
+  'dist/js/',
+  'dist/css/content-theme/',
+  'dist/images/',
+]
+
+function extractVditorRelative(url: string, base: string): string | null {
+  const pathname = url.split('?')[0]
+  for (const basePrefix of [base, '/']) {
+    const vditorPrefix = basePrefix + 'vditor/'
+    if (!pathname.startsWith(vditorPrefix)) continue
+    const relative = pathname.slice(vditorPrefix.length)
+    if (VDITOR_RUNTIME_DIRS.some(dir => relative.startsWith(dir))) {
+      return relative
+    }
+    return null
+  }
+  return null
 }
 
-function vditorPlugin() {
+function vditorPlugin(base: string) {
   const vditorRoot = path.resolve(__dirname, 'node_modules/vditor')
 
-  // 开发模式：将 /vditor/* 和 /{base}vditor/* 映射到 node_modules/vditor/*
   function serveFile(url: string, res: any): boolean {
-    const relativePath = extractVditorRelative(url)
+    const relativePath = extractVditorRelative(url, base)
     if (!relativePath) return false
     const filePath = path.join(vditorRoot, relativePath)
     try {
@@ -64,15 +77,12 @@ function vditorPlugin() {
 
   return {
     name: 'vditor-plugin',
-    // 开发服务器：拦截 /vditor/ 请求，直接从 node_modules 返回文件
     configureServer(server: any) {
       server.middlewares.use((req: any, res: any, next: any) => {
         if (serveFile(req.url || '/', res)) return
         next()
       })
     },
-    // 生产构建：将 node_modules/vditor/dist 复制到 dist/vditor/dist，
-    // 使得 {base}vditor/dist/... 路径在部署后能找到文件
     writeBundle() {
       const outDir = path.resolve(__dirname, 'dist')
       const srcDist = path.join(vditorRoot, 'dist')
@@ -84,13 +94,12 @@ function vditorPlugin() {
   }
 }
 
-// https://vite.dev/config/
 export default defineConfig({
   base: '/FzBlog_Frontend/',
   plugins: [
     vue(),
     vueDevTools(),
-    vditorPlugin(),
+    vditorPlugin('/FzBlog_Frontend/'),
   ],
   resolve: {
     alias: {

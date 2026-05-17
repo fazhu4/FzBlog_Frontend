@@ -1,21 +1,23 @@
 <template>
   <!-- 文章详情页容器 -->
   <div class="article-detail-page">
-    <!-- 返回按钮和面包屑导航 -->
-    <div class="navigation-header">
-      <button @click="goBack" class="back-button">
-        <span class="arrow">←</span> 返回文章列表
-      </button>
-      <nav class="breadcrumb">
-        <span class="breadcrumb-item">首页</span>
-        <span class="breadcrumb-separator">/</span>
-        <span class="breadcrumb-item active">{{ articleForDisplay?.title }}</span>
-      </nav>
-    </div>
+    <!-- 文章内容区域（含导航） -->
+    <div class="article-content-wrapper">
+      <!-- 返回按钮和面包屑导航 -->
+      <div class="navigation-header">
+        <button @click="goBack" class="back-button">
+          <span class="arrow">←</span> 返回文章列表
+        </button>
+        <nav class="breadcrumb">
+          <span class="breadcrumb-item">首页</span>
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-item active">{{ articleForDisplay?.title }}</span>
+        </nav>
+      </div>
 
-    <!-- 文章内容区域 -->
-    <main class="article-content-container">
-      <div class="container">
+      <!-- 文章内容区域 -->
+      <main class="article-content-container">
+        <div class="container">
         <!-- 文章头部信息 -->
         <header v-if="articleForDisplay" class="article-header">
           <!-- 文章标题 -->
@@ -88,6 +90,7 @@
       </div>
        
     </main>
+    </div>
   </div>
 </template>
 
@@ -259,6 +262,15 @@ onMounted(() => {
   line-height: 1.6;
 }
 
+/* 文章内容区域包裹层 */
+.article-content-wrapper {
+  max-width: 1200px;
+  margin: 20px auto;
+  padding-top: 1px;
+  background-color: #faf8f5;
+  border-radius: 0.5rem;
+}
+
 /* 导航头部样式 */
 .navigation-header {
   max-width: 1200px;
@@ -383,22 +395,22 @@ onMounted(() => {
 
 /* 文章主体样式 */
 .article-body {
-  background-color: #ffffff;
-  border-radius: 0.75rem;
-  padding: 2rem;
   margin-bottom: 4rem;
 }
 
 .content-wrapper {
   display: grid;
   grid-template-columns: 3fr 1fr;
-  gap: 2rem;
+  gap: 10px;
 }
 
 /* Markdown 内容样式 */
 .article-paragraphs {
   font-size: 1.125rem;
   line-height: 1.8;
+  background-color: #ffffff;
+  border-radius: 0.75rem;
+  padding: 2rem;
 }
 
 /* 侧边栏样式 */
@@ -406,6 +418,9 @@ onMounted(() => {
   position: sticky;
   top: 5rem;
   height: fit-content;
+  background-color: #ffffff;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
 }
 
 .tags-list {

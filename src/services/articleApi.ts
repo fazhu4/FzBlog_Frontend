@@ -41,7 +41,7 @@ class ArticleApiService {
    * 更新文章信息
    */
   async updateArticle(id: number, data: UpdateArticleRequest): Promise<ApiResponseArticleDTO> {
-    return http.put<ArticleDTO>(`/articles/${id}`, data)
+    return http.post<ArticleDTO>(`/articles/${id}`, data)
   }
 
   /**

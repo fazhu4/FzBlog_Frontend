@@ -3,12 +3,14 @@
     <HomepageBanner />
 
     <section class="content-section">
-      <div class="content-inner">
-        <aside class="sidebar-wrapper">
-          <PersonInfoSidebar @update:selected-tags="onSelectedTagsChange" />
-        </aside>
-        <div class="articles-wrapper">
-          <ArticleList :selected-tags="selectedTags" />
+      <div class="content-wrapper">
+        <div class="content-inner">
+          <aside class="sidebar-wrapper">
+            <PersonInfoSidebar @update:selected-tags="onSelectedTagsChange" />
+          </aside>
+          <div class="articles-wrapper">
+            <ArticleList :selected-tags="selectedTags" />
+          </div>
         </div>
       </div>
     </section>
@@ -33,13 +35,19 @@ const onSelectedTagsChange = (tagIds: number[]) => {
   /* 不设背景色，让 body 背景图透出 */
 }
 
-.content-inner {
+.content-wrapper {
   max-width: 1400px;
-  margin: 0 auto;
+  margin: 20px auto;
+  padding-top: 1px;
+  background-color: #faf8f5;
+  border-radius: 0.5rem;
+}
+
+.content-inner {
   display: flex;
   gap: 2rem;
   align-items: flex-start;
-  padding: 0 1rem;
+  padding: 0 1rem 1rem;
 }
 
 .sidebar-wrapper {

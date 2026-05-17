@@ -1,24 +1,25 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { RouterLink, RouterView } from 'vue-router'
+import { settingApi }  from '@/services/settingApi'
 import Footer from '@/components/Footer.vue'
 
 const bgUrl = '/b68ef245-8fe7-4a0f-9b05-7e8d4a7329da.png'
 
 onMounted(async () => {
   try {
-    // const res = await settingApi.getSettings()
-    // console.log('设置数据:', res)
-    // if (res.success && res.data?.background) {
-      // const url = settingApi.buildImageUrl(res.data.background)
-      const url = bgUrl
+    const res = await settingApi.getSettings()
+    console.log('设置数据:', res)
+    if (res.success && res.data?.background) {
+      const url = settingApi.buildImageUrl(res.data.background)
+      // const url = bgUrl
       console.log('背景图URL:', url)
       document.body.style.backgroundImage = `url('${url}')`
       document.body.style.backgroundAttachment = 'fixed'
       document.body.style.backgroundSize = 'cover'
       document.body.style.backgroundPosition = 'center'
       document.body.style.backgroundRepeat = 'no-repeat'
-    // }
+    }
   } catch (err) {
     console.error('加载背景图失败:', err)
   }
