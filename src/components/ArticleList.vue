@@ -211,6 +211,7 @@ onMounted(() => {
                 <span v-if="article.readTime" class="article-read-time">{{
                   article.readTime
                 }}</span>
+                <span class="article-views">👀 {{ article.readingVolume || 0 }} 阅读</span>
               </div>
             </div>
 

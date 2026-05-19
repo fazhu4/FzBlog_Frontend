@@ -12,7 +12,7 @@ const currentYear = new Date().getFullYear()
       <nav class="footer-links">
         <RouterLink to="/">首页</RouterLink>
         <a href="#" @click.prevent>归档</a>
-        <a href="#" @click.prevent>关于</a>
+        <RouterLink to="/about">关于</RouterLink>
         <a href="#" @click.prevent>RSS</a>
       </nav>
     </div>

@@ -52,6 +52,7 @@ export interface ArticleDTO {
   updateTime: string // ISO 8601格式
   img?: string // 文章封面图片
   tags?: number[] // 文章标签ID列表
+  readingVolume?: number // 阅读量
 }
 
 // 文章数量统计DTO
@@ -76,6 +77,7 @@ export interface SettingDTO {
   avatar: string // 头像文件名
   self_introduction: string //自我介绍
   background: string //背景图片文件名
+  about: string //关于页面内容
 }
 
 // 特定API响应类型
@@ -101,5 +103,6 @@ export interface ArticleCard {
   category: string // 可根据业务逻辑从标签或分类中提取
   img?: string
   readTime?: string
+  readingVolume?: number
   tags?: string[]
 }

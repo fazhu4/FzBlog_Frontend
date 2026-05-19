@@ -11,6 +11,10 @@ interface SocialLink {
   url: string
 }
 
+defineProps<{
+  showTags?: boolean
+}>()
+
 const self_introduction =ref("这个人很懒，什么都没写，快去催他");
 const avatarUrl = ref()
 
@@ -124,7 +128,7 @@ const toggleTag = (tagId: number) => {
     </div>
 
     <!-- 标签云 -->
-    <div class="tags-card">
+    <div v-if="showTags !== false" class="tags-card">
       <h3 class="section-title">标签</h3>
       <div class="tags-cloud">
         <span

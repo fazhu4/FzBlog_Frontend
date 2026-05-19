@@ -72,6 +72,19 @@
                   <span v-for="tag in articleForDisplay.tags" :key="tag" class="tag-item">{{ tag }}</span>
                 </div>
               </div>
+
+              <!-- 文章目录 -->
+              <div v-if="tocItems.length > 0" class="toc-section">
+                <h4>文章目录</h4>
+                <ul class="toc-list">
+                  <li v-for="item in tocItems" :key="item.id"
+                      :style="{ paddingLeft: (item.level - 1) * 16 + 'px' }">
+                    <a :href="`#${item.id}`" class="toc-link" @click.prevent="scrollToHeading(item.id)">
+                      {{ item.text }}
+                    </a>
+                  </li>
+                </ul>
+              </div>
             </aside>
           </div>
          </article>
@@ -109,10 +122,17 @@ const router = useRouter()
 const route = useRoute()
 const articleStore = useArticleStore()
 
+interface TocItem {
+  id: string
+  text: string
+  level: number
+}
+
 // 响应式数据
 const article = ref<ArticleDTO | null>(null)
 const isLoading = ref(false)
 const contentRef = ref<HTMLDivElement | null>(null)
+const tocItems = ref<TocItem[]>([])
 
 // 标签名称映射（id → name）
 const tagMap = ref<Record<number, string>>({})
@@ -158,9 +178,36 @@ const articleForDisplay = computed(() => {
     readTime,
     tags,
     img: buildImageUrl(article.value.img || ''),
-    views: 1250,
+    views: article.value.readingVolume || 0,
   }
 })
+
+// 从渲染后的 DOM 中提取标题结构
+const extractHeadings = () => {
+  if (!contentRef.value) {
+    tocItems.value = []
+    return
+  }
+  const headings = contentRef.value.querySelectorAll('h1, h2, h3, h4, h5, h6')
+  const items: TocItem[] = []
+  headings.forEach((heading) => {
+    const level = parseInt(heading.tagName.charAt(1), 10)
+    const text = heading.textContent?.trim() || ''
+    const id = heading.id || text.replace(/\s+/g, '-').replace(/[^\w一-鿿-]/g, '')
+    if (text) {
+      items.push({ id, text, level })
+    }
+  })
+  tocItems.value = items
+}
+
+// 平滑滚动到指定标题
+const scrollToHeading = (id: string) => {
+  const el = document.getElementById(id)
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+}
 
 // 渲染 Markdown 内容
 const renderMarkdown = async () => {
@@ -193,6 +240,7 @@ const renderMarkdown = async () => {
         enable: false,
       },
     })
+    extractHeadings()
   } catch (error) {
     console.error('渲染 Markdown 失败:', error)
     // 降级为纯文本显示
@@ -213,9 +261,14 @@ const fetchArticle = async () => {
   }
 
   isLoading.value = true
+  tocItems.value = []
   try {
     const articleData = await articleStore.fetchArticleById(articleId)
     article.value = articleData
+    // 增加阅读量（不阻塞页面渲染）
+    http.post('/articles/readingvolume/insert', { id: articleId }).catch(err => {
+      console.error('增加阅读量失败:', err)
+    })
     // 数据加载完成后渲染 Markdown
     if (articleData?.content) {
       setTimeout(() => renderMarkdown(), 50)
@@ -442,6 +495,34 @@ onMounted(() => {
 .tag-item:hover {
   background-color: #4f46e5;
   color: white;
+}
+
+/* 文章目录样式 */
+.toc-section {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.toc-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.toc-link {
+  color: #6b7280;
+  font-size: 0.875rem;
+  text-decoration: none;
+  display: block;
+  padding: 0.25rem 0;
+  transition: color 0.2s ease;
+}
+
+.toc-link:hover {
+  color: #4f46e5;
 }
 
 

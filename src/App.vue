@@ -34,7 +34,7 @@ onMounted(async () => {
       <div class="nav-links">
         <RouterLink to="/" class="nav-link">首页</RouterLink>
         <a href="#" class="nav-link" @click.prevent>归档</a>
-        <a href="#" class="nav-link" @click.prevent>关于</a>
+        <RouterLink to="/about" class="nav-link">关于</RouterLink>
         <a href="#" class="nav-link" @click.prevent>RSS</a>
       </div>
     </nav>

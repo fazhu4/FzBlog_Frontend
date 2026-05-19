@@ -136,8 +136,9 @@ class ArticleApiService {
       date,
       author: article.author,
       category: article.statusText || '未分类',
-      img: article.img, // 传递图片字段
+      img: article.img,
       readTime,
+      readingVolume: article.readingVolume || 0,
       tags: [],
     }
   }

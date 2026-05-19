@@ -41,8 +41,8 @@ onMounted(() => {
       <h2 class="banner-title">欢迎来到FzBlog</h2>
       <!-- 副标题/描述文字 -->
       <p class="banner-subtitle">
-        一个分享技术、思考和创意的地<br />
-        探索前端开发、设计思维和数字生活的无限可能
+        一个分享技术、思考和生活的个人博客<br />
+        
       </p>
 
     </div>

@@ -2,7 +2,7 @@
   <div class="home">
     <HomepageBanner />
 
-    <section class="content-section">
+    <section>
       <div class="content-wrapper">
         <div class="content-inner">
           <aside class="sidebar-wrapper">
@@ -31,15 +31,12 @@ const onSelectedTagsChange = (tagIds: number[]) => {
 </script>
 
 <style scoped>
-.content-section {
-  /* 不设背景色，让 body 背景图透出 */
-}
+
 
 .content-wrapper {
   max-width: 1400px;
   margin: 20px auto;
   padding-top: 1px;
-  background-color: #faf8f5;
   border-radius: 0.5rem;
 }
 
@@ -57,6 +54,7 @@ const onSelectedTagsChange = (tagIds: number[]) => {
 }
 
 .articles-wrapper {
+  background-color: #faf8f5;
   flex: 1;
   min-width: 0;
 }

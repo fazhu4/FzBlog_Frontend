@@ -2,6 +2,7 @@ import { createRouter, createWebHistory ,createWebHashHistory} from 'vue-router'
 import Home from '@/views/Home.vue'
 import Editor from '@/views/Editor.vue'
 import ArticleDetail from '@/views/ArticleDetail.vue'
+import About from '@/views/About.vue'
 
 const useHashMode = import.meta.env.VITE_ROUTER_MODE === 'hash'
 
@@ -24,6 +25,11 @@ const router = createRouter({
       path: '/editor/fazhu',
       name: 'editor',
       component: Editor,
+    },
+    {
+      path: '/about',
+      name: 'about',
+      component: About,
     },
   ],
 })
